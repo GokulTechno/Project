@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ "$1" == "3g" ]
+then
+
+sh /home/root/gprs_sim_3g > /home/root/sim_file
+
+else
+
+sh /home/root/gprs_sim > /home/root/sim_file
+
+fi
+
+
+
+sim_status=`cat /home/root/sim_file | grep +CPIN | awk '{print $2}'`
+
+sim_status=`echo ${sim_status:0:5}`
+
+
+echo $sim_status
+
+if [ "$sim_status" = "READY" ]
+then
+
+echo "1" > /home/root/sim_value
+
+else
+
+echo "0" > /home/root/sim_value
+
+fi
