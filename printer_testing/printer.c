@@ -177,26 +177,26 @@ static void printer_prepare_spi_message(void)
     {
         rotate_stat=1;
         //printk("Paper Found\n");
-/*
+
         f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
         fs = get_fs();
         set_fs(get_ds());
         f2->f_op->write(f2, "1", 1, &f2->f_pos);
         set_fs(fs);
         filp_close(f2,NULL);
-*/
+
     }
     else if(buf[0]=='0')
     {
         rotate_stat=0;
-/*
+
         f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
         fs = get_fs();
         set_fs(get_ds());
         f2->f_op->write(f2, "0", 1, &f2->f_pos);
         set_fs(fs);
         filp_close(f2,NULL);
-*/
+
     }
     /***************Rotate Status Check***************/
     data_read[48]=0,data_read[49]=1,data_read[50]=2,data_read[51]=3,data_read[52]=4,data_read[53]=5,data_read[54]=6,data_read[55]=7,data_read[56]=8,data_read[57]=9,data_read[65]=10,data_read[66]=11,data_read[67]=12,data_read[68]=13,data_read[69]=14,data_read[70]=15;

@@ -1,8 +1,8 @@
-cmd_/home/elinux1/printer_testing/printer.o := arm-poky-linux-gnueabi-gcc -Wp,-MD,/home/elinux1/printer_testing/.printer.o.d  -nostdinc -isystem /opt/poky/1.4.4/sysroots/x86_64-pokysdk-linux/usr/lib/armv5te-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/4.7.2/include -I/home/elinux1/linux-3.10.y-master/arch/arm/include -Iarch/arm/include/generated  -Iinclude -I/home/elinux1/linux-3.10.y-master/arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I/home/elinux1/linux-3.10.y-master/include/uapi -Iinclude/generated/uapi -include /home/elinux1/linux-3.10.y-master/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-nuc970/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -std=gnu89 -O2 -fno-dwarf2-cfi-asm -fno-omit-frame-pointer -mapcs -mno-sched-prolog -fno-ipa-sra -mabi=aapcs-linux -mno-thumb-interwork -marm -D__LINUX_ARM_ARCH__=5 -march=armv5te -mtune=arm9tdmi -msoft-float -Uarm -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(printer)"  -D"KBUILD_MODNAME=KBUILD_STR(printer)" -c -o /home/elinux1/printer_testing/printer.o /home/elinux1/printer_testing/printer.c
+cmd_/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o := arm-poky-linux-gnueabi-gcc -Wp,-MD,/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/.printer.o.d  -nostdinc -isystem /opt/poky/1.4.4/sysroots/x86_64-pokysdk-linux/usr/lib/armv5te-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/4.7.2/include -I/home/elinux1/linux-3.10.y-master/arch/arm/include -Iarch/arm/include/generated  -Iinclude -I/home/elinux1/linux-3.10.y-master/arch/arm/include/uapi -Iarch/arm/include/generated/uapi -I/home/elinux1/linux-3.10.y-master/include/uapi -Iinclude/generated/uapi -include /home/elinux1/linux-3.10.y-master/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-nuc970/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -std=gnu89 -O2 -fno-dwarf2-cfi-asm -fno-omit-frame-pointer -mapcs -mno-sched-prolog -fno-ipa-sra -mabi=aapcs-linux -mno-thumb-interwork -marm -D__LINUX_ARM_ARCH__=5 -march=armv5te -mtune=arm9tdmi -msoft-float -Uarm -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(printer)"  -D"KBUILD_MODNAME=KBUILD_STR(printer)" -c -o /home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o /home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.c
 
-source_/home/elinux1/printer_testing/printer.o := /home/elinux1/printer_testing/printer.c
+source_/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o := /home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.c
 
-deps_/home/elinux1/printer_testing/printer.o := \
+deps_/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o := \
   include/linux/module.h \
     $(wildcard include/config/sysfs.h) \
     $(wildcard include/config/modules.h) \
@@ -641,9 +641,9 @@ deps_/home/elinux1/printer_testing/printer.o := \
   /home/elinux1/linux-3.10.y-master/arch/arm/include/asm/uaccess.h \
   /home/elinux1/linux-3.10.y-master/arch/arm/include/asm/unified.h \
     $(wildcard include/config/arm/asm/unified.h) \
-  /home/elinux1/printer_testing/motor.h \
-  /home/elinux1/printer_testing/final_font.h \
+  /home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/motor.h \
+  /home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/final_font.h \
 
-/home/elinux1/printer_testing/printer.o: $(deps_/home/elinux1/printer_testing/printer.o)
+/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o: $(deps_/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o)
 
-$(deps_/home/elinux1/printer_testing/printer.o):
+$(deps_/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/printer_testing/printer.o):
