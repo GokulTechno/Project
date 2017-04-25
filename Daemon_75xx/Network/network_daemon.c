@@ -396,7 +396,7 @@ static void ping(int a)
         int state =1;
                 while(state)
                 {
-                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
                 {
                         fping = fopen("/opt/daemon_files/ping_status", "w");
                         fprintf(fping,"%s","E");
@@ -418,7 +418,7 @@ static void ping(int a)
         int state =1;
                 while(state)
                 {
-                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
                 {
                         fping = fopen("/opt/daemon_files/ping_status", "w");
                         fprintf(fping,"%s","W");
@@ -440,7 +440,7 @@ static void ping(int a)
         int state =1;
                 while(state)
                 {
-                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                if (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")  == 0)
                 {
                         fping = fopen("/opt/daemon_files/ping_status", "w");
                         fprintf(fping,"%s","G");
@@ -617,6 +617,7 @@ int main()
                     {
                         system("pppd call gprs");
                         sleep(1);
+                        system("echo \"nameserver 8.8.8.8\" >> /etc/resolve.conf");
                     }
                     else
                     {
