@@ -87,7 +87,7 @@ static void operator_check(void)
 
     printf("Signal check \n");
     fcntl(mux_fd, F_SETFL, O_NONBLOCK);
-    write(mux_fd,gsmops,sizeof(gsmops));
+    write(mux_fd, gsmops, sizeof(gsmops));
 
     while(1)
     {
@@ -323,70 +323,147 @@ static int ip_address(char* i_name)
     //    printf("IP Address is %s - %s\n" , i_name , inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr) );
     return 0;
 }
+//static void ping(int a)
+//{
+//    int status=0;
+//    switch(a)
+//    {
+//    case 1:
+//        status = pings("8.8.8.8");
+//        if (status)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","E");
+//            fclose(fping);
+//            printf ("\n Exists");
+
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","e");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+
+//        }
+
+//        break;
+//    case 2:
+//        status = pings("8.8.8.8");
+//        if (status)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","W");
+//            fclose(fping);
+//            printf ("\n Exists");
+
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","w");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+
+//        }
+//        break;
+//    case 3:
+//        status = pings("8.8.8.8");
+//        if (status)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","G");
+//            fclose(fping);
+//            printf ("\n Exists");
+
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","g");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+
+//        }
+//        break;
+//    }
+//}
+
 static void ping(int a)
 {
-    int status=0;
-    switch(a)
-    {
-    case 1:
-        status = pings("8.8.8.8");
-        if (status)
+    if(a==1)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","E");
-            fclose(fping);
-            printf ("\n Exists");
-
+        int state =1;
+                while(state)
+                {
+                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                {
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","E");
+                        fclose(fping);
+                        printf ("\n Exists");
+                        state=0;
+                }
+                else
+                {
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","e");
+                        fclose(fping);
+                        printf ("\n Not reachable ");
+                }
+                }
         }
-        else
+        if(a==2)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","e");
-            fclose(fping);
-            printf ("\n Not reachable ");
-
+        int state =1;
+                while(state)
+                {
+                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                {
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","W");
+                        fclose(fping);
+                        printf ("\n Exists");
+                        state=0;
+                }
+                else
+                {
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","w");
+                        fclose(fping);
+                        printf ("\n Not reachable ");
+                }
+                }
         }
-
-        break;
-    case 2:
-        status = pings("8.8.8.8");
-        if (status)
+        if(a==3)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","W");
-            fclose(fping);
-            printf ("\n Exists");
-
+        int state =1;
+                while(state)
+                {
+                if ( (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")) || (system("ping -c 2 8.8.8.8 -w 2 > /dev/null"))  == 0)
+                {
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","G");
+                        fclose(fping);
+                        printf ("\n Exists");
+                        state=0;
+                        count=0;
+                }
+                else
+                {
+                        count++;
+                        if(count == 3)
+                        {
+                          restart_pppd();
+                        }
+                        fping = fopen("/opt/daemon_files/ping_status", "w");
+                        fprintf(fping,"%s","g");
+                        fclose(fping);
+                        printf ("\n Not reachable ");
+                        state=0;
+                }
+                }
         }
-        else
-        {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","w");
-            fclose(fping);
-            printf ("\n Not reachable ");
-
-        }
-        break;
-    case 3:
-        status = pings("8.8.8.8");
-        if (status)
-        {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","G");
-            fclose(fping);
-            printf ("\n Exists");
-
-        }
-        else
-        {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            fprintf(fping,"%s","g");
-            fclose(fping);
-            printf ("\n Not reachable ");
-
-        }
-        break;
-    }
 }
 
 int pings(char *ipaddr) {

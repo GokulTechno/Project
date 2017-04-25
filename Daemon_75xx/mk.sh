@@ -24,7 +24,7 @@ arm-poky-linux-gnueabi-gcc -o toold toolbar.c
 cp toold ../build/
 cd ..
 cd $PWD/Keypad
-arm-poky-linux-gnueabi-gcc -o keyd keypad_rotate.c
+arm-poky-linux-gnueabi-gcc -o keyd keypad_rotate.c -lpthread
 cp keyd ../build/
 cd ..
 cp build/* ../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/opt/daemon_files/
