@@ -8,7 +8,7 @@ arm-poky-linux-gnueabi-gcc -o gpiod gpio_daemon.c
 cp gpiod ../build/
 cd ..
 cd $PWD/Network/
-arm-poky-linux-gnueabi-gcc -o netd network_daemon.c
+arm-poky-linux-gnueabi-gcc -o netd network_daemon.c -lpthread
 cp netd ../build/
 cd ..
 cd $PWD/Gps/

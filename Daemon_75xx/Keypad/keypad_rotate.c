@@ -270,7 +270,7 @@ int main(void)
                 {
                     count++;
                     printf("Count: %d\n",count);
-                    if(count==10)
+                    if(count==6)
                     {
                         printf("LongPress Event\n");
                         fp1 = fopen("/sys/class/gpio/gpio195/value","w");
@@ -293,7 +293,7 @@ int main(void)
                         printf("Pid Shutdown:%d\n",child1);
                         if (child1 == -1)
                         {
-                            //                          system("export DISPLAY=:0.0; /usr/bin/shutdown &");
+                            system("export DISPLAY=:0.0; /usr/bin/shutdown &");
                             sfile = fopen("/usr/share/status/callshutdown","w");
                             fprintf(sfile,"%d",1);
                             fclose(sfile);
@@ -431,7 +431,7 @@ int main(void)
                         printf("Pid Shutdown:%d\n",child1);
                         if (child1 == -1)
                         {
-                            //                            system("export DISPLAY=:0.0; /usr/bin/shutdown &");
+                            system("export DISPLAY=:0.0; /usr/bin/shutdown &");
                             sfile = fopen("/usr/share/status/callshutdown","w");
                             fprintf(sfile,"%d",1);
                             fclose(sfile);

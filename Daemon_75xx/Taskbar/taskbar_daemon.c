@@ -190,7 +190,7 @@ int main() {
             *s++ = task_bar_status[c];
         }
         *s = '\0';
-        sleep(1);
+        sleep(2);
     }
 
 }

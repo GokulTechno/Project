@@ -35,6 +35,11 @@ char read_buffer[30],gsmcsq[8]="AT+CSQ\n",gsmops[10]="AT+COPS?\n",status_buff[10
 void ip_check(char *);
 FILE *fping,*fgprspwr,*fgprsen,*fstatus,*fsim,*fm66,*fwifien,*fcsq, *fbluestat, *fblue;
 int fdt,count,level=0;
+FILE *ftower_value;
+
+int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0;
+pthread_t tid[2];
+int a=0;
 
 int mux_fd;
 pid_t wlanconfig,wlanscan,wlanup;
@@ -93,6 +98,7 @@ static void operator_check(void)
     {
         if ( thread_stat == 0 ) {
             thread_stat=1;
+            alarm(0);
             alarm(4);
         }
         if(t_stat==1){
@@ -137,6 +143,7 @@ static void signal_check(void)
     {
         if ( thread_stat == 0 ) {
             thread_stat=1;
+            alarm(0);
             alarm(4);
         }
         if(t_stat==1)
@@ -323,163 +330,74 @@ static int ip_address(char* i_name)
     //    printf("IP Address is %s - %s\n" , i_name , inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr) );
     return 0;
 }
-//static void ping(int a)
-//{
-//    int status=0;
-//    switch(a)
-//    {
-//    case 1:
-//        status = pings("8.8.8.8");
-//        if (status)
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","E");
-//            fclose(fping);
-//            printf ("\n Exists");
-
-//        }
-//        else
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","e");
-//            fclose(fping);
-//            printf ("\n Not reachable ");
-
-//        }
-
-//        break;
-//    case 2:
-//        status = pings("8.8.8.8");
-//        if (status)
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","W");
-//            fclose(fping);
-//            printf ("\n Exists");
-
-//        }
-//        else
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","w");
-//            fclose(fping);
-//            printf ("\n Not reachable ");
-
-//        }
-//        break;
-//    case 3:
-//        status = pings("8.8.8.8");
-//        if (status)
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","G");
-//            fclose(fping);
-//            printf ("\n Exists");
-
-//        }
-//        else
-//        {
-//            fping = fopen("/opt/daemon_files/ping_status", "w");
-//            fprintf(fping,"%s","g");
-//            fclose(fping);
-//            printf ("\n Not reachable ");
-
-//        }
-//        break;
-//    }
-//}
 
 static void ping(int a)
 {
     if(a==1)
-        {
-        int state =1;
-                while(state)
-                {
-                if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
-                {
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","E");
-                        fclose(fping);
-                        printf ("\n Exists");
-                        state=0;
-                }
-                else
-                {
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","e");
-                        fclose(fping);
-                        printf ("\n Not reachable ");
-                }
-                }
-        }
-        if(a==2)
-        {
-        int state =1;
-                while(state)
-                {
-                if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
-                {
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","W");
-                        fclose(fping);
-                        printf ("\n Exists");
-                        state=0;
-                }
-                else
-                {
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","w");
-                        fclose(fping);
-                        printf ("\n Not reachable ");
-                }
-                }
-        }
-        if(a==3)
-        {
-        int state =1;
-                while(state)
-                {
-                if (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")  == 0)
-                {
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","G");
-                        fclose(fping);
-                        printf ("\n Exists");
-                        state=0;
-                        count=0;
-                }
-                else
-                {
-                        count++;
-                        if(count == 3)
-                        {
-                          restart_pppd();
-                        }
-                        fping = fopen("/opt/daemon_files/ping_status", "w");
-                        fprintf(fping,"%s","g");
-                        fclose(fping);
-                        printf ("\n Not reachable ");
-                        state=0;
-                }
-                }
-        }
-}
+    {
 
-int pings(char *ipaddr) {
-    char *command = NULL;
-    FILE *fp;
-    int stat = 0;
-    asprintf (&command, "%s %s -q 2>&1", "fping", ipaddr);
-    fp = popen(command, "r");
-    if (fp == NULL) {
-        fprintf(stderr, "Failed to execute fping command\n");
-        free(command);
-        return -1;
+        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+        {
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","E");
+            fclose(fping);
+            printf ("\n Exists");
+
+        }
+        else
+        {
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","e");
+            fclose(fping);
+            printf ("\n Not reachable ");
+        }
+
     }
-    stat = pclose(fp);
-    free(command);
-    return WEXITSTATUS(stat);
+    if(a==2)
+    {
+
+        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+        {
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","W");
+            fclose(fping);
+            printf ("\n Exists");
+
+        }
+        else
+        {
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","w");
+            fclose(fping);
+            printf ("\n Not reachable ");
+        }
+
+    }
+    if(a==3)
+    {
+
+        if (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")  == 0)
+        {
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","G");
+            fclose(fping);
+            printf ("\n Exists");
+            count=0;
+        }
+        else
+        {
+            count++;
+            if(count == 3)
+            {
+                restart_pppd();
+            }
+            fping = fopen("/opt/daemon_files/ping_status", "w");
+            fprintf(fping,"%s","g");
+            fclose(fping);
+            printf ("\n Not reachable ");
+        }
+
+    }
 }
 
 void wlan0_up(void)
@@ -545,6 +463,40 @@ pid_t proc_find(const char* name)
     return -1;
 }
 
+void* gprs_signal_check_thread(void *arg)
+{
+    pthread_t id = pthread_self();
+
+    if(pthread_equal(id,tid[0]))
+    {
+        while(1)
+        {
+            printf("\n GPRS Signal Thread processing\n");
+            pid_t pid = proc_find("gsmMuxd");
+            printf("Pid GSMMUXD:%d\n",pid);
+            if ((pid == -1) || status_buff[1]=='1' || status_buff[3]=='1' || status_buff[5]=='0')
+            {
+                printf("GPRS Signal Thread Killed\n");
+                ftower_value = fopen("/opt/daemon_files/tower_value","w");
+                fprintf(ftower_value,"%s"," ");
+                fclose(ftower_value);
+                gprs_signal_check_thread_status=0;
+                pthread_cancel(&tid[0]);
+                break;
+            }
+            else
+            {
+                signal_check();
+                sleep(1);
+                operator_check();
+            }
+            sleep(1);
+        }
+    }
+
+    return NULL;
+}
+
 //----------- Main --------------------------
 
 int main()
@@ -585,9 +537,9 @@ int main()
             else
             {
                 printf("Got Wifi link\n");
+                wifi_signal_strength();
                 ping(2);
                 ip_address("wlan0");
-
             }
 
         }
@@ -609,15 +561,30 @@ int main()
                 }
                 else
                 {
-                    signal_check();
-                    operator_check();
+                    if(gprs_signal_check_thread_status==0)
+                    {
+                        /*****************************GPRS Signal Check Thread Creation*******************/
+                        int err = pthread_create(&(tid[0]), NULL, &gprs_signal_check_thread, NULL);
+                        if (err != 0)
+                        {
+                            printf("\ncan't create thread :[%s]", strerror(err));
+                        }
+                        else
+                        {
+                            printf("\n Thread created successfully\n");
+                            gprs_signal_check_thread_status=1;
+                        }
+
+                        /*****************************GPRS Signal Check Thread Creation*******************/
+                    }
+
                     pid_t pid = proc_find("pppd");
                     printf("Pid PPPD:%d\n",pid);
                     if (pid == -1)
                     {
                         system("pppd call gprs");
                         sleep(1);
-                        system("echo \"nameserver 8.8.8.8\" >> /etc/resolve.conf");
+                        system("echo nameserver 8.8.8.8 >> /etc/resolv.conf");
                     }
                     else
                     {
@@ -646,7 +613,7 @@ int main()
         }
         else if(status_buff[1]=='0' && status_buff[3]=='0' && status_buff[5]=='0')
         {
-            FILE *ftower_value;
+            printf("Network OFF\n");
             ftower_value = fopen("/opt/daemon_files/tower_value","w");
             fprintf(ftower_value,"%s"," ");
             fclose(ftower_value);
