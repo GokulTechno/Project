@@ -68,7 +68,7 @@ int main(void)
     fp = fopen("/opt/daemon_files/winid","w");
     fclose(fp);
 
-    sleep(20);
+    sleep(10);
 
     while(1)
     {

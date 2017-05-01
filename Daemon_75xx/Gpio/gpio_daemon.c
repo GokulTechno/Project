@@ -75,16 +75,16 @@ void gpio(int pin_no,char gpiovalue)
 
 }
 
-void run_nfcpoll()
-{
-    nfcp=fork();
-    if(nfcp==0)
-    {
-        static char *argv_eth0_ifdown[]={"nfcDemoApp","poll","&",NULL};
-        execv("/sbin/nfcDemoApp",argv_eth0_ifdown);
-    }
+//void run_nfcpoll()
+//{
+//    nfcp=fork();
+//    if(nfcp==0)
+//    {
+//        static char *argv_eth0_ifdown[]={"nfcDemoApp","poll","&",NULL};
+//        execv("/sbin/nfcDemoApp",argv_eth0_ifdown);
+//    }
 
-}
+//}
 
 int main(int argc, char *argv[]) {
 

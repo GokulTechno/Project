@@ -330,19 +330,110 @@ static int ip_address(char* i_name)
     //    printf("IP Address is %s - %s\n" , i_name , inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr) );
     return 0;
 }
+/****************************************Ping Function***********************************/
+#define PACKETSIZE  64
+struct packet
+{
+    struct icmphdr hdr;
+    char msg[PACKETSIZE-sizeof(struct icmphdr)];
+};
+
+int pid=-1;
+struct protoent *proto=NULL;
+int cnt=1;
+
+unsigned short checksum(void *b, int len)
+{
+    unsigned short *buf = b;
+    unsigned int sum=0;
+    unsigned short result;
+
+    for ( sum = 0; len > 1; len -= 2 )
+        sum += *buf++;
+    if ( len == 1 )
+        sum += *(unsigned char*)buf;
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+    result = ~sum;
+    return result;
+}
+
+int pingf(char *adress)
+{
+    const int val=255;
+    int i, sd;
+    struct packet pckt;
+    struct sockaddr_in r_addr;
+    int loop;
+    struct hostent *hname;
+    struct sockaddr_in addr_ping,*addr;
+
+    pid = getpid();
+    proto = getprotobyname("ICMP");
+    hname = gethostbyname(adress);
+    bzero(&addr_ping, sizeof(addr_ping));
+    addr_ping.sin_family = hname->h_addrtype;
+    addr_ping.sin_port = 0;
+    addr_ping.sin_addr.s_addr = *(long*)hname->h_addr;
+
+    addr = &addr_ping;
+
+    sd = socket(PF_INET, SOCK_RAW, proto->p_proto);
+    if ( sd < 0 )
+    {
+        perror("socket");
+        return 1;
+    }
+    if ( setsockopt(sd, SOL_IP, IP_TTL, &val, sizeof(val)) != 0)
+    {
+        perror("Set TTL option");
+        return 1;
+    }
+    if ( fcntl(sd, F_SETFL, O_NONBLOCK) != 0 )
+    {
+        perror("Request nonblocking I/O");
+        return 1;
+    }
+
+    for (loop=0;loop < 10; loop++)
+    {
+
+        int len=sizeof(r_addr);
+
+        if ( recvfrom(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&r_addr, &len) > 0 )
+        {
+            return 0;
+        }
+
+        bzero(&pckt, sizeof(pckt));
+        pckt.hdr.type = ICMP_ECHO;
+        pckt.hdr.un.echo.id = pid;
+        for ( i = 0; i < sizeof(pckt.msg)-1; i++ )
+            pckt.msg[i] = i+'0';
+        pckt.msg[i] = 0;
+        pckt.hdr.un.echo.sequence = cnt++;
+        pckt.hdr.checksum = checksum(&pckt, sizeof(pckt));
+        if ( sendto(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)addr, sizeof(*addr)) <= 0 )
+            perror("sendto");
+
+        usleep(300000);
+
+    }
+
+    return 1;
+}
 
 static void ping(int a)
 {
+
     if(a==1)
     {
-
-        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+        if (pingf("8.8.8.8")==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","E");
             fclose(fping);
             printf ("\n Exists");
-
         }
         else
         {
@@ -356,13 +447,12 @@ static void ping(int a)
     if(a==2)
     {
 
-        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+        if (pingf("8.8.8.8")==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","W");
             fclose(fping);
             printf ("\n Exists");
-
         }
         else
         {
@@ -376,7 +466,7 @@ static void ping(int a)
     if(a==3)
     {
 
-        if (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")  == 0)
+        if (pingf("8.8.8.8")==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","G");
@@ -399,6 +489,77 @@ static void ping(int a)
 
     }
 }
+
+/****************************************Ping Function***********************************/
+
+//static void ping(int a)
+//{
+//    if(a==1)
+//    {
+
+//        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","E");
+//            fclose(fping);
+//            printf ("\n Exists");
+
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","e");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+//        }
+
+//    }
+//    if(a==2)
+//    {
+
+//        if ( system("ping -c 2 8.8.8.8 -w 2 > /dev/null") == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","W");
+//            fclose(fping);
+//            printf ("\n Exists");
+
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","w");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+//        }
+
+//    }
+//    if(a==3)
+//    {
+
+//        if (system("ping -c 2 8.8.8.8 -w 2 > /dev/null")  == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","G");
+//            fclose(fping);
+//            printf ("\n Exists");
+//            count=0;
+//        }
+//        else
+//        {
+//            count++;
+//            if(count == 3)
+//            {
+//                restart_pppd();
+//            }
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","g");
+//            fclose(fping);
+//            printf ("\n Not reachable ");
+//        }
+
+//    }
+//}
 
 void wlan0_up(void)
 {
@@ -583,8 +744,8 @@ int main()
                     if (pid == -1)
                     {
                         system("pppd call gprs");
-                        sleep(1);
-                        system("echo nameserver 8.8.8.8 >> /etc/resolv.conf");
+                        sleep(3);
+                        //                        system("export DISPLAY=:0.0;echo nameserver 8.8.8.8 >> /etc/resolv.conf;");
                     }
                     else
                     {
@@ -625,9 +786,9 @@ int main()
             fping_status = fopen("/opt/daemon_files/ping_status","w");
             fprintf(fping_status,"%s"," ");
             fclose(fping_status);
+            wlan0_down();
             disable_gprs();
             disable_wifi();
-            wlan0_down();
         }
         sleep(1);
     }//Ever loop ending
