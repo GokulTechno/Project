@@ -29,7 +29,7 @@ void handle_alarm( int sig )
 {
     printf("Alarm Called\n");
     system("sh /usr/share/scripts/backlight 0");
-    system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -STOP $var");
+    //    system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -STOP $var");
 }
 
 /*********************************Pthread Job*********************************/
@@ -60,7 +60,7 @@ void* doSomeThing(void *arg)
                     fscanf(bfile,"%d",&bdata);
                     fclose(bfile);
                     system("sh /usr/share/scripts/backlight 4");
-                    system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
+                    //                    system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
                     alarm(0);
                     alarm(bdata);
                 }
@@ -230,7 +230,7 @@ int main(void)
                 alarm(0);
                 alarm(bdata);
                 system("sh /usr/share/scripts/backlight 4");
-                system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
+                //                system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if(ev.value==1)
                 {
@@ -270,8 +270,10 @@ int main(void)
                 {
                     count++;
                     printf("Count: %d\n",count);
-                    if(count==6)
+                    if(count==7)
                     {
+
+                        system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;xdotool windowmap $var;");
                         printf("LongPress Event\n");
                         fp1 = fopen("/sys/class/gpio/gpio195/value","w");
                         fprintf(fp1,"%d",1);
@@ -288,16 +290,18 @@ int main(void)
                         fp1 = fopen("/sys/class/gpio/gpio195/value","w");
                         fprintf(fp1,"%d",0);
                         fclose(fp1);
+
                         //system("/usr/bin/shutdown &");
-                        pid_t child1 = proc_find("/usr/bin/shutdown");
-                        printf("Pid Shutdown:%d\n",child1);
-                        if (child1 == -1)
-                        {
-                            system("export DISPLAY=:0.0; /usr/bin/shutdown &");
-                            sfile = fopen("/usr/share/status/callshutdown","w");
-                            fprintf(sfile,"%d",1);
-                            fclose(sfile);
-                        }
+                        //                        pid_t child1 = proc_find("/usr/bin/shutdown");
+                        //                        printf("Pid Shutdown:%d\n",child1);
+                        //                        if (child1 == -1)
+                        //                        {
+                        //                            //system("export DISPLAY=:0.0; /usr/bin/shutdown &");
+                        //                            system("sh /opt/daemon_files/min.sh 1");
+                        //                            sfile = fopen("/usr/share/status/callshutdown","w");
+                        //                            fprintf(sfile,"%d",1);
+                        //                            fclose(sfile);
+                        //                        }
                     }
                 }
                 if((int)ev.value==0 && (int)ev.code==1)
@@ -357,7 +361,7 @@ int main(void)
                 alarm(0);
                 alarm(bdata);
                 system("sh /usr/share/scripts/backlight 4");
-                system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
+                //                system("var=`ps | grep '[X]org' | awk '{print $1}'`;kill -CONT $var");
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if(ev.value==1)
                 {
@@ -374,9 +378,7 @@ int main(void)
                 }
                 if((int)ev.code==56 && (int)ev.value==1)
                 {
-                    //                countk++;
-                    //                if(countk==2)
-                    //                {
+
                     if(num_stat[0]=='1')
                     {
                         task_bar_status[0]=alp_stat[0];
@@ -387,8 +389,7 @@ int main(void)
                         task_bar_status[0]='3';
                         num_stat[0]='1';
                     }
-                    //                    countk=0;
-                    //                }
+
                 }
                 else if((int)ev.code==58 && (int)ev.value==1)
                 {
@@ -408,8 +409,10 @@ int main(void)
                 {
                     count++;
                     printf("Count: %d\n",count);
-                    if(count==10)
+                    if(count==7)
                     {
+
+                        system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;xdotool windowmap $var;");
                         printf("LongPress Event\n");
                         fp1 = fopen("/sys/class/gpio/gpio195/value","w");
                         fprintf(fp1,"%d",1);
@@ -426,16 +429,18 @@ int main(void)
                         fp1 = fopen("/sys/class/gpio/gpio195/value","w");
                         fprintf(fp1,"%d",0);
                         fclose(fp1);
+
                         //system("/usr/bin/shutdown &");
-                        pid_t child1 = proc_find("/usr/bin/shutdown");
-                        printf("Pid Shutdown:%d\n",child1);
-                        if (child1 == -1)
-                        {
-                            system("export DISPLAY=:0.0; /usr/bin/shutdown &");
-                            sfile = fopen("/usr/share/status/callshutdown","w");
-                            fprintf(sfile,"%d",1);
-                            fclose(sfile);
-                        }
+                        //                        pid_t child1 = proc_find("/usr/bin/shutdown");
+                        //                        printf("Pid Shutdown:%d\n",child1);
+                        //                        if (child1 == -1)
+                        //                        {
+                        //                            //system("export DISPLAY=:0.0; /usr/bin/shutdown &");
+                        //                            system("sh /opt/daemon_files/min.sh 1");
+                        //                            sfile = fopen("/usr/share/status/callshutdown","w");
+                        //                            fprintf(sfile,"%d",1);
+                        //                            fclose(sfile);
+                        //                        }
                     }
                 }
                 if((int)ev.value==0 && (int)ev.code==1)
