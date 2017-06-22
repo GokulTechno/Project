@@ -30,11 +30,9 @@ volatile sig_atomic_t thread_stat = 0;
 void handle_alarm( int sig )
 {
     printf("Alarm Called\n");
-    //system("sh /usr/share/scripts/backlight 0");
     bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
     fprintf(bl,"500");
     fclose(bl);
-    //system("sh /opt/daemon_files/standby.sh start");
 }
 
 /*********************************Pthread Job*********************************/

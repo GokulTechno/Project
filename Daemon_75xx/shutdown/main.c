@@ -85,6 +85,7 @@ int main(void)
             printf("Data:%ld\n",data);
             if(data>1000)
             {
+                system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;");
                 break;
             }
             sleep(1);

@@ -17,7 +17,7 @@ old_library=''
 inherited_linker_flags=' -pthread'
 
 # Libraries that this one depends upon.
-dependency_libs=' -ldl -lrt /opt/poky/1.4.4/sysroots/armv5te-poky-linux-gnueabi/usr/lib/libstdc++.la'
+dependency_libs=' -ldl -lrt /usr/lib/libstdc++.la'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -28,7 +28,7 @@ age=0
 revision=0
 
 # Is this an already installed library?
-installed=no
+installed=yes
 
 # Should we warn about portability when linking against -modules?
 shouldnotlink=no
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/Daemon_75xx/Nfc/linux_libnfc-nci-master/build_custom/lib'
+libdir='/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/Daemon_75xx/linux_libnfc-nci-master/build_custom/lib'

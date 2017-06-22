@@ -34,10 +34,10 @@
 char read_buffer[30],gsmcsq[8]="AT+CSQ\n",gsmops[10]="AT+COPS?\n",status_buff[10],bstatus_buff[10],bstat_buff[2], ping_buff[10], *name, status_sim[2],read_buff[10];
 void ip_check(char *);
 FILE *fping,*fgprspwr,*fgprsen,*fstatus,*fsim,*fm66,*fwifien,*fcsq, *fbluestat, *fblue;
-int fdt,count,level=0;
+int fdt,count=0,level=0;
 FILE *ftower_value;
 
-int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0;
+int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0,resol=0;
 pthread_t tid[2];
 int a=0;
 
@@ -54,11 +54,13 @@ void handle_alarm( int sig )
     t_stat=1;
 }
 
-
 #define BAUDRATE B115200
+
 static void restart_pppd(void)
 {
+    printf("Restarting PPPD\n");
     system("killall pppd > /dev/null &");
+    sleep(1);
     system("pppd call gprs");
 }
 
@@ -294,6 +296,7 @@ void wifi_signal_strength()
 
 void wlan0_down(void)
 {
+system("killall wifi_signal.sh");
 
     int sockfd;
     struct ifreq ifr;
@@ -394,10 +397,8 @@ int pingf(char *adress)
         perror("Request nonblocking I/O");
         return 1;
     }
-
     for (loop=0;loop < 10; loop++)
     {
-
         int len=sizeof(r_addr);
 
         if ( recvfrom(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&r_addr, &len) > 0 )
@@ -415,11 +416,8 @@ int pingf(char *adress)
         pckt.hdr.checksum = checksum(&pckt, sizeof(pckt));
         if ( sendto(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)addr, sizeof(*addr)) <= 0 )
             perror("sendto");
-
-        usleep(300000);
-
+        usleep(500000);
     }
-
     return 1;
 }
 
@@ -428,7 +426,7 @@ static void ping(int a)
 
     if(a==1)
     {
-        if (pingf("8.8.8.8")==0)
+        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","E");
@@ -446,8 +444,7 @@ static void ping(int a)
     }
     if(a==2)
     {
-
-        if (pingf("8.8.8.8")==0)
+        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","W");
@@ -466,7 +463,7 @@ static void ping(int a)
     if(a==3)
     {
 
-        if (pingf("8.8.8.8")==0)
+        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
         {
             fping = fopen("/opt/daemon_files/ping_status", "w");
             fprintf(fping,"%s","G");
@@ -477,7 +474,7 @@ static void ping(int a)
         else
         {
             count++;
-            if(count == 3)
+            if(count > 3)
             {
                 restart_pppd();
             }
@@ -627,7 +624,6 @@ pid_t proc_find(const char* name)
 void* gprs_signal_check_thread(void *arg)
 {
     pthread_t id = pthread_self();
-
     if(pthread_equal(id,tid[0]))
     {
         while(1)
@@ -654,7 +650,6 @@ void* gprs_signal_check_thread(void *arg)
             sleep(1);
         }
     }
-
     return NULL;
 }
 
@@ -682,6 +677,7 @@ int main()
         //Ethernet Enable Flow
         if((status_buff[1]=='1' && status_buff[3]=='1' && status_buff[5]=='2') || (status_buff[1]=='1' && status_buff[3]=='1' && status_buff[5]=='0') || (status_buff[1]=='1' && status_buff[3]=='0' && status_buff[5]=='0') || (status_buff[1]=='1' && status_buff[3]=='0' && status_buff[5]=='2'))
         {
+            system("killall wifi_signal.sh");
             disable_wifi();
             disable_gprs();
         }
@@ -694,11 +690,11 @@ int main()
             if(system("ifconfig | grep \"wlan0\"")!=0)
             {
                 wlan0_up();
+                system("/opt/daemon_files/wifi_signal.sh &");
             }
             else
             {
                 printf("Got Wifi link\n");
-                wifi_signal_strength();
                 ping(2);
                 ip_address("wlan0");
             }
@@ -718,7 +714,7 @@ int main()
                 if (pid == -1)
                 {
                     system("gsmMuxd -b 115200 -p /dev/ttyS3 -r -s /dev/mux /dev/ptmx /dev/ptmx /dev/ptmx");
-
+                    sleep(2);
                 }
                 else
                 {
@@ -743,15 +739,20 @@ int main()
                     printf("Pid PPPD:%d\n",pid);
                     if (pid == -1)
                     {
+                        resol=0;
                         system("pppd call gprs");
-                        sleep(3);
-                        //                        system("export DISPLAY=:0.0;echo nameserver 8.8.8.8 >> /etc/resolv.conf;");
+                        sleep(2);
                     }
                     else
                     {
                         printf("Pinging !!!\n");
                         ping(3);
                         ip_address("ppp0");
+                        if(resol==0)
+                        {
+                        system("export DISPLAY=:0.0;echo nameserver 8.8.8.8 >> /etc/resolv.conf;");
+                        resol=1;
+                        }
                     }
                 }
             }

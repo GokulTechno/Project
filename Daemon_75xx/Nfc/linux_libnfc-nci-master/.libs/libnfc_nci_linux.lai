@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/Daemon_75xx/linux_libnfc-nci-master/build_custom/lib'
+libdir='/home/elinux1/projects/Gokul_Backup/Yocto_nuvoton/Daemon_75xx/Nfc/linux_libnfc-nci-master/build_custom/lib'

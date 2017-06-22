@@ -1276,7 +1276,8 @@ int WaitDeviceArrival(int mode, unsigned char* msgToSend, unsigned int len)
     int res = 0x00;
     unsigned int i = 0x00;
     int block = 0x15;
-    unsigned char key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    //unsigned char key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    unsigned char key[6] = {0x6d, 0x79, 0x64, 0x65, 0x77, 0x73};
     ndef_info_t NDEFinfo;
     eDevType DevTypeBck = eDevType_NONE;
     /*Cmd Mifare Auth Key A : 0x60U*/
@@ -1310,6 +1311,7 @@ int WaitDeviceArrival(int mode, unsigned char* msgToSend, unsigned int len)
         if(eDevState_PRESENT != g_DevState)
         {
             printf("Waiting for a Tag/Device...\n\n");
+           // system("sh /usr/share/scripts/Buzzer 4");
             g_DevState = eDevState_WAIT_ARRIVAL;
             framework_WaitMutex(g_devLock, 0);
         }
@@ -1322,6 +1324,10 @@ int WaitDeviceArrival(int mode, unsigned char* msgToSend, unsigned int len)
 
         if(eDevState_PRESENT == g_DevState)
         {
+            system("echo 1 > /sys/class/gpio/gpio195/value");
+            usleep(500);
+            system("echo 0 > /sys/class/gpio/gpio195/value");
+
             FILE *nfclog;
             nfclog = fopen("/opt/daemon_files/nfc_data","w");
             fclose(nfclog);

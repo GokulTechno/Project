@@ -155,8 +155,6 @@ int main(int argc, char *argv[]) {
             status_buff[i]=*s;
             i++;
         }
-
-
         //printf("\n");
 
         // ---------------Success -------------------
@@ -171,11 +169,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-                    if(usb_hub==0)
-                    {
-                        gpio(usb_hub_enable,'1');
-                        usb_hub=1;
-                    }
+//                    if(usb_hub==0)
+//                    {
+//                        gpio(usb_hub_enable,'1');
+//                        usb_hub=1;
+//                    }
                     if(audio==0)
                     {
                         //gpio(audio_camera_switch,'1');
@@ -185,11 +183,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-                    if(usb_hub!=0)
-                    {
-                        gpio(usb_hub_enable,'0');
-                        usb_hub=0;
-                    }
+//                    if(usb_hub!=0)
+//                    {
+//                        gpio(usb_hub_enable,'0');
+//                        usb_hub=0;
+//                    }
                     if(audio!=0)
                     {
                         gpio(audio_power,'0');
@@ -198,13 +196,13 @@ int main(int argc, char *argv[]) {
                 }
 
             }
+            // ---------------- Barcode (^002B1!) --------------------
             else if(status_buff[2]=='0' && status_buff[3]=='2' && status_buff[4]=='B')
             {
                 if(status_buff[5]=='1')
                 {
                     if(bar==0)
                     {
-
                         gpio(bar_power,'1');
                         bar=1;
                     }
@@ -225,7 +223,7 @@ int main(int argc, char *argv[]) {
                     {
                         //	v5--;
                         //					printf("barcode disable\n");
-                        gpio(bar_trig,'1');
+                        gpio(bar_trig,'0');
                         gpio(bar_power,'0');
                         bar=0;
                     }
@@ -239,11 +237,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-                    if(usb_hub==0)
-                    {
-                        gpio(usb_hub_enable,'1');
-                        usb_hub=1;
-                    }
+//                    if(usb_hub==0)
+//                    {
+//                        gpio(usb_hub_enable,'1');
+//                        usb_hub=1;
+//                    }
                     if(camera==0)
                     {
                         gpio(future_power,'1');
@@ -252,11 +250,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-                    if(usb_hub!=0)
-                    {
-                        gpio(usb_hub_enable,'0');
-                        usb_hub=0;
-                    }
+//                    if(usb_hub!=0)
+//                    {
+//                        gpio(usb_hub_enable,'0');
+//                        usb_hub=0;
+//                    }
                     if(camera!=0)
                     {
                         gpio(future_power,'0');
@@ -272,11 +270,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-                    if(usb_hub==0)
-                    {
-                        gpio(usb_hub_enable,'1');
-                        usb_hub=1;
-                    }
+//                    if(usb_hub==0)
+//                    {
+//                        gpio(usb_hub_enable,'1');
+//                        usb_hub=1;
+//                    }
                     if(fp==0)
                     {
                         gpio(fingerprint_power,'1');
@@ -285,11 +283,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-                    if(usb_hub!=0)
-                    {
-                        gpio(usb_hub_enable,'0');
-                        usb_hub=0;
-                    }
+//                    if(usb_hub!=0)
+//                    {
+//                        gpio(usb_hub_enable,'0');
+//                        usb_hub=0;
+//                    }
                     if(fp!=0)
                     {
                         gpio(fingerprint_power,'0');

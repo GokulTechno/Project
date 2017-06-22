@@ -149,10 +149,11 @@ int main() {
         }
 
         fp_tower = fopen("/opt/daemon_files/tower_value", "r");
-        fread(tower, 1, 1, fp_tower);
+        fread(tower, 1, 2, fp_tower);
         fclose(fp_tower);
 
         task_bar_status[1]=tower[0];
+       // task_bar_status[2]=tower[1];
 
         fp_nw = fopen("/opt/daemon_files/ping_status", "r");
         fread(nw_status, 1, 1, fp_nw);
@@ -181,6 +182,7 @@ int main() {
         task_bar_status[4]='~';
         task_bar_status[6]='~';
         task_bar_status[9]='!';
+        //task_bar_status[10]='!';
         //task_bar_status[1]='5';
         //task_bar_status[5]='G';
         //task_bar_status[7]='-';

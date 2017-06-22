@@ -15,35 +15,49 @@ int main()
     char str[128];
 
     /*****************************Daemon******************************/
-        pid_t pid=0;
-        pid_t sid=0;
-        pid = fork();
-        if (pid < 0) { exit(1); }
-        if (pid > 0) { exit(0); }
-        umask(0);
-        sid = setsid();
-        if (sid < 0) { exit(1); }
-        chdir("/");
-        if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
+//    pid_t pid=0;
+//    pid_t sid=0;
+//    pid = fork();
+//    if (pid < 0) { exit(1); }
+//    if (pid > 0) { exit(0); }
+//    umask(0);
+//    sid = setsid();
+//    if (sid < 0) { exit(1); }
+//    chdir("/");
+//    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+//    close(STDIN_FILENO);
+//    close(STDOUT_FILENO);
+//    close(STDERR_FILENO);
     /*****************************Daemon******************************/
 
     /*****************************Terminal Config**********************/
 
     int gps_fd;
-    struct termios oldtio,newtio;
-    gps_fd = open(DEV_NAME, O_RDWR | O_NOCTTY );
-    tcgetattr(gps_fd,&oldtio); /* save current serial port settings */
-    bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
-    newtio.c_iflag = IGNPAR | ICRNL;
-    newtio.c_oflag = 0;
-    newtio.c_lflag = ICANON;
+    struct termios tio;
+    struct termios stdio;
 
-    tcflush(gps_fd, TCIFLUSH);
-    tcsetattr(gps_fd,TCSANOW,&newtio);
+
+    memset(&stdio,0,sizeof(stdio));
+    stdio.c_iflag=0;
+    stdio.c_oflag=0;
+    stdio.c_cflag=0;
+    stdio.c_lflag=0;
+    stdio.c_cc[VMIN]=1;
+    stdio.c_cc[VTIME]=0;
+   // fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);       // make the reads non-blocking
+
+    memset(&tio,0,sizeof(tio));
+    tio.c_iflag=0;
+    tio.c_oflag=0;
+    tio.c_cflag=CS8|CREAD|CLOCAL;           // 8n1, see termios.h for more information
+    tio.c_lflag=0;
+    tio.c_cc[VMIN]=1;
+    tio.c_cc[VTIME]=5;
+
+    gps_fd = open(DEV_NAME, O_RDWR);
+    cfsetospeed(&tio,B9600);            // 9600 baud
+    cfsetispeed(&tio,B9600);            // 9600 baud
+    tcsetattr(gps_fd,TCSANOW,&tio);
 
     /*****************************Terminal Config**********************/
 
@@ -60,7 +74,7 @@ int main()
         c[0] = 0;
         FILE *fp = NULL;
 
-        printf("%s\n",str);
+       // printf("%s\n",str);
         n = strlen(str);
 
         if(n>10)
@@ -116,8 +130,9 @@ int main()
                                 {
                                     c[j]=i;
                                     count++;
-                                    if (count == 2)
+                                    switch(count)
                                     {
+                                    case 2:
                                         //printf("UTC Time:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -130,9 +145,10 @@ int main()
                                         tim[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 3)
-                                    {
+                                        break;
+
+                                    case 3:
+
                                         //printf("Latitude:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -145,9 +161,9 @@ int main()
                                         lat[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 4)
-                                    {
+                                        break;
+                                    case 4:
+
                                         //printf("N/S Indicator:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -158,9 +174,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 5)
-                                    {
+                                        break;
+                                    case 5:
+
                                         //printf("Longitude:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -173,9 +189,9 @@ int main()
                                         lon[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 6)
-                                    {
+                                        break;
+                                    case 6:
+
                                         //printf("E/W Indicator");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -186,9 +202,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 7)
-                                    {
+                                        break;
+                                    case 7:
+
                                         //printf("Position Fix Indicator:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -199,9 +215,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 8)
-                                    {
+                                        break;
+                                    case 8:
+
                                         //printf("Satellites used:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -212,9 +228,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 9)
-                                    {
+                                        break;
+                                    case 9:
+
                                         //printf("HDOP:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -225,9 +241,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 10)
-                                    {
+                                        break;
+                                    case 10:
+
                                         //printf("MSL Altitude:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -241,9 +257,9 @@ int main()
                                         alti[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 11)
-                                    {
+                                        break;
+                                    case 11:
+
                                         //printf("Units:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -254,9 +270,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 12)
-                                    {
+                                        break;
+                                    case 12:
+
                                         //printf("Geiod Seperation:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -267,9 +283,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 13)
-                                    {
+                                        break;
+                                    case 13:
+
                                         //printf("Units:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -280,9 +296,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 14)
-                                    {
+                                        break;
+                                    case 14:
+
                                         //printf("Age of Diff.corr:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -293,6 +309,7 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
+                                        break;
                                     }
                                 }
                             }
@@ -306,8 +323,10 @@ int main()
                                 if(str[i]==',')
                                 {   c[j]=i;
                                     count++;
-                                    if (count == 2)
+                                    switch(count)
                                     {
+                                    case 2:
+
                                         //printf("UTC Time:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -320,9 +339,9 @@ int main()
                                         tim[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 3)
-                                    {
+                                        break;
+                                    case 3:
+
                                         //printf("Status:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -333,9 +352,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 4)
-                                    {
+                                        break;
+                                    case 4:
+
                                         //printf("Latitude:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -348,9 +367,9 @@ int main()
                                         lat[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 5)
-                                    {
+                                        break;
+                                    case 5:
+
                                         //printf("N/S indicator:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -361,9 +380,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 6)
-                                    {
+                                        break;
+                                    case 6:
+
                                         //printf("Longitude:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -376,9 +395,9 @@ int main()
                                         lon[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 7)
-                                    {
+                                        break;
+                                    case 7:
+
                                         //printf("E/W indicator:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -389,9 +408,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 8)
-                                    {
+                                        break;
+                                    case 8:
+
                                         //printf("Speed over ground:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -404,9 +423,9 @@ int main()
                                         speed[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 9)
-                                    {
+
+                                    case 9:
+
                                         //printf("Course over ground:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -417,9 +436,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 10)
-                                    {
+                                        break;
+                                    case 10:
+
                                         //printf("Date:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -432,9 +451,9 @@ int main()
                                         date[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 11)
-                                    {
+                                        break;
+                                    case 11:
+
                                         //printf("Magnitude variation:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -445,6 +464,7 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
+                                        break;
                                     }
                                 }
                             }
@@ -458,8 +478,10 @@ int main()
                                 if(str[i]==',')
                                 {   c[j]=i;
                                     count++;
-                                    if (count == 2)
+                                    switch(count)
                                     {
+                                    case 2:
+
                                         //printf("Course:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -470,9 +492,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 3)
-                                    {
+                                        break;
+                                    case 3:
+
                                         //printf("Reference:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -483,9 +505,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 4)
-                                    {
+                                        break;
+                                    case 4:
+
                                         //printf("course:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -496,9 +518,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 5)
-                                    {
+                                        break;
+                                    case 5:
+
                                         //printf("Reference:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -509,9 +531,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 6)
-                                    {
+                                        break;
+                                    case 6:
+
                                         //printf("Speed:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -524,9 +546,9 @@ int main()
                                         speed[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 7)
-                                    {
+                                        break;
+                                    case 7:
+
                                         //printf("Units:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -537,9 +559,9 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 8)
-                                    {
+                                        break;
+                                    case 8:
+
                                         //printf("Speed:");
                                         for (k = c[j - 1],z=0; k < c[j]; k++)
                                         {
@@ -552,9 +574,9 @@ int main()
                                         speed[z]='\0';
                                         j++;
                                         //printf("\n");
-                                    }
-                                    else if (count == 9)
-                                    {
+                                        break;
+                                    case 9:
+
                                         //printf("Units:");
                                         for (k = c[j - 1]; k < c[j]; k++)
                                         {
@@ -565,6 +587,7 @@ int main()
                                         }
                                         j++;
                                         //printf("\n");
+                                        break;
                                     }
                                 }
                             }
