@@ -1,0 +1,40 @@
+echo ~E0031ClanCor TechnovatesBLC~3! > /dev/printer
+echo ~E0027G.N Mills Post,BMC~3! > /dev/printer
+echo ~E0030Coimbatore-641020.BMC~3! > /dev/printer
+echo ~E0028Ph.0422-264-7261BMC~3! > /dev/printer
+echo ~E0038**************************BLC~3! > /dev/printer
+echo ~E0016BILLBLC~3! > /dev/printer
+echo ~E0038--------------------------BLC~3! > /dev/printer
+echo ~E0026NO OF ITEMS: 3BSL~3! > /dev/printer
+echo ~E0023OPERATOR: 4BSL~3! > /dev/printer
+echo ~E0038--------------------------BLC~3! > /dev/printer
+echo ~E0039ITEM    QTY   RATE   AMOUNTBSL~3! > /dev/printer
+echo ~E0038--------------------------BLC~3! > /dev/printer
+echo ~E0000MARKER     1.000    750.00      750.00BS
+
+
+
+print_Data("       COMPANY NAME", _english,_big, _regular, _left);   
+ print_Data("           HEADER LINE 1", _english,_medium, _regular, _left);   
+ print_Data("           HEADER LINE 2", _english,_medium, _regular, _left);   
+ print_Data("           Ph.9600404630", _english,_medium, _regular, _left);  
+print_Data("**************************", _english,_big, _regular, _left);   
+ print_Data("BILL", _english,_big, _regular, _center);   
+ print_Data("---------------------", _english,_small, _regular, _left);  
+
+        memset(gen_prntr_arr_eng,' ', 38);
+        Add_string_printdata("00001",0);                                                      
+        Add_string_printdata("17/12/16",10);                                                      
+        Add_string_printdata("12:25:40",20);                                                      
+print_Data(&gen_prntr_arr_eng[0],_english,_medium, _regular, _left); 
+print_Data("NO OF ITEMS:", _english,_small, _regular, _left);  
+print_Data("OPERATOR:", _english,_small, _regular, _left);  
+print_Data("--------------------------------------", _english,_small, _regular, _left);  
+print_Data("ITEM    QTY   RATE   AMOUNT", _english,_medium, _regular, _left);  
+print_Data("--------------------------------------", _english,_small, _regular, _left);  
+print_Data("MARKER     1.000    750.00      750.00", _english,_small, _regular, _left);  
+print_Data("TAX      @ 5.00%    37.50      ", _english,_small, _regular, _left);  
+print_Data("--------------------------------------", _english,_small, _regular, _left);  
+print_Data("TOTAL Rs.                   787.50", _english,_medium, _regular, _left);  
+print_Data("--------------------------------------", _english,_small, _regular, _left); 
+print_Data("THANK YOU", _english,_medium, _regular, _center); 
