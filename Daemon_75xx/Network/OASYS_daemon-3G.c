@@ -657,7 +657,6 @@ static void gprs3g(void)
 	system("echo 20 > /opt/daemon_files/tower_value");
 	}
 
-
 	if(cops_status == 1)
 	{
 	signal_check_3G();

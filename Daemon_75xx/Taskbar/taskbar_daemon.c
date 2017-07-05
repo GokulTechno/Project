@@ -107,31 +107,31 @@ int main() {
 
         if(bat_Temp<100 && bat_Temp>=94)
         {
-            task_bar_status[8]='5';
+            task_bar_status[9]='5';
         }
         else if(bat_Temp<94 && bat_Temp>=89)
         {
-            task_bar_status[8]='4';
+            task_bar_status[9]='4';
         }
         else if(bat_Temp<89 && bat_Temp>=84)
         {
-            task_bar_status[8]='3';
+            task_bar_status[9]='3';
         }
         else if(bat_Temp<84 && bat_Temp>=79)
         {
-            task_bar_status[8]='2';
+            task_bar_status[9]='2';
         }
         else if(bat_Temp<79 && bat_Temp>=74)
         {
-            task_bar_status[8]='1';
+            task_bar_status[9]='1';
         }
         else if(bat_Temp<74 && bat_Temp>=72)
         {
-            task_bar_status[8]='0';
+            task_bar_status[9]='0';
         }
         else if(bat_Temp<72)
         {
-            task_bar_status[8]='7';
+            task_bar_status[9]='7';
         }
 
         fp_status1 = fopen("/sys/class/gpio/gpio110/value", "r");
@@ -140,12 +140,12 @@ int main() {
 
         if(charger_status1[0] == '0')
         {
-            task_bar_status[7]='+';
+            task_bar_status[8]='+';
             present_level=5;
         }
         else if(charger_status1[0] == '1')
         {
-            task_bar_status[7]='-';
+            task_bar_status[8]='-';
         }
 
         fp_tower = fopen("/opt/daemon_files/tower_value", "r");
@@ -153,11 +153,12 @@ int main() {
         fclose(fp_tower);
 
         task_bar_status[1]=tower[0];
-       // task_bar_status[2]=tower[1];
+        task_bar_status[2]=tower[1];
 
         fp_nw = fopen("/opt/daemon_files/ping_status", "r");
         fread(nw_status, 1, 1, fp_nw);
         fclose(fp_nw);
+        task_bar_status[6]=nw_status[0];
 
         char gpssat[3];
         fp_gps = fopen("/opt/sdk/resources/gps_file","r");
@@ -165,33 +166,35 @@ int main() {
         fclose(fp_gps);
         if(gpssat[0]=='G')
         {
-            task_bar_status[3]='1';
+            task_bar_status[4]='1';
             memset(gpssat,'\0',sizeof(gpssat));
         }
         else
         {
-            task_bar_status[3]='0';
+            task_bar_status[4]='0';
             memset(gpssat,'\0',sizeof(gpssat));
         }
 
-        task_bar_status[5]=nw_status[0];
-
         task_bar_status[0]='^';
-        task_bar_status[2]='~';
-        // task_bar_status[3]='0'; //GPS notify
-        task_bar_status[4]='~';
-        task_bar_status[6]='~';
-        task_bar_status[9]='!';
-        //task_bar_status[10]='!';
-        //task_bar_status[1]='5';
-        //task_bar_status[5]='G';
-        //task_bar_status[7]='-';
+        //task_bar_status[2]='~';
+        task_bar_status[3]='~'; //GPS notify
+       // task_bar_status[4]='~';
+        task_bar_status[5]='~';
+        //task_bar_status[6]='~';
+        task_bar_status[7]='~';
+        //task_bar_status[9]='!';
+        task_bar_status[10]='!';
 
-        for (c = 0; c < 10; c++)
+
+        for (c = 0; c < 11; c++)
         {
             *s++ = task_bar_status[c];
         }
         *s = '\0';
+        for(i=0;i<11;i++)
+        {
+            printf("%c",task_bar_status[i]);
+        }
         sleep(2);
     }
 

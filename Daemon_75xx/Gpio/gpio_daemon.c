@@ -71,20 +71,7 @@ void gpio(int pin_no,char gpiovalue)
     fgpio=fopen(start, "w");
     fwrite(&gpiovalue,1,1,fgpio);
     fclose(fgpio);
-    //printf("gpio_fixed\n");
-
 }
-
-//void run_nfcpoll()
-//{
-//    nfcp=fork();
-//    if(nfcp==0)
-//    {
-//        static char *argv_eth0_ifdown[]={"nfcDemoApp","poll","&",NULL};
-//        execv("/sbin/nfcDemoApp",argv_eth0_ifdown);
-//    }
-
-//}
 
 int main(int argc, char *argv[]) {
 
@@ -146,7 +133,7 @@ int main(int argc, char *argv[]) {
     while(1)
     {
         while (*shm != '^')
-            sleep(1);
+        sleep(1);
         printf("received.......\n");
         int i=0;
         for (s = shm; *s != '\0'; s++)
@@ -155,13 +142,11 @@ int main(int argc, char *argv[]) {
             status_buff[i]=*s;
             i++;
         }
-        //printf("\n");
 
         // ---------------Success -------------------
 
         if(status_buff[0]=='^' && status_buff[6]=='!')
         {
-
             // ---------------- Audio (^001A1!) --------------------
 
             if(status_buff[2]=='0' && status_buff[3]=='1' && status_buff[4]=='A')
@@ -203,6 +188,7 @@ int main(int argc, char *argv[]) {
                 {
                     if(bar==0)
                     {
+                        gpio(bar_trig,'1');
                         gpio(bar_power,'1');
                         bar=1;
                     }
@@ -223,7 +209,7 @@ int main(int argc, char *argv[]) {
                     {
                         //	v5--;
                         //					printf("barcode disable\n");
-                        gpio(bar_trig,'0');
+                        gpio(bar_trig,'1');
                         gpio(bar_power,'0');
                         bar=0;
                     }

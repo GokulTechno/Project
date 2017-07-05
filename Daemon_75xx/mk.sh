@@ -12,7 +12,7 @@ arm-poky-linux-gnueabi-gcc -o netd network_daemon.c -lpthread
 cp netd ../build/
 cd ..
 cd $PWD/Gps/
-arm-poky-linux-gnueabi-gcc -o gpsd gps_daemon.c
+make
 cp gpsd ../build/
 cd ..
 cd $PWD/Taskbar

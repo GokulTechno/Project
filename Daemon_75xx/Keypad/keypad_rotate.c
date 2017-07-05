@@ -18,23 +18,48 @@
 #define EV_SYN 0
 #endif
 
-FILE *bfile, *sfile;
+FILE *bfile, *sfile, *shutfile;
 FILE *bl;
 
 char task_bar_status[1];
 pthread_t tid[2];
-int a_stat=0;
-
+int a_stat=0,shutdata=0;
 
 volatile sig_atomic_t thread_stat = 0;
+
+void standby(int value)
+{
+    pid_t pid1 = proc_find("/opt/daemon_files/gpiod");
+    pid_t pid2 = proc_find("/opt/daemon_files/taskd");
+    pid_t pid3 = proc_find("/opt/daemon_files/toold");
+    pid_t pid4 = proc_find("/usr/bin/toolbar");
+    pid_t pid5 = proc_find("/opt/daemon_files/netd");
+    switch(value)
+    {
+    case 0:
+        kill(pid1,SIGSTOP);
+        kill(pid2,SIGSTOP);
+        kill(pid3,SIGSTOP);
+        kill(pid4,SIGSTOP);
+        kill(pid5,SIGSTOP);
+        break;
+    case 1:
+        kill(pid1,SIGCONT);
+        kill(pid2,SIGCONT);
+        kill(pid3,SIGCONT);
+        kill(pid4,SIGCONT);
+        kill(pid5,SIGCONT);
+        break;
+    }
+}
+
 void handle_alarm( int sig )
 {
     printf("Alarm Called\n");
-    //system("sh /usr/share/scripts/backlight 0");
+//    standby(0);
     bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
     fprintf(bl,"500");
     fclose(bl);
-    //system("sh /opt/daemon_files/standby.sh start");
 }
 
 /*********************************Pthread Job*********************************/
@@ -69,6 +94,7 @@ void* doSomeThing(void *arg)
                     fprintf(bl,"500");
                     fclose(bl);
                     //system("sh /opt/daemon_files/standby.sh stop");
+//                    standby(1);
                     alarm(0);
                     alarm(bdata);
                 }
@@ -153,17 +179,17 @@ int main(void)
 
     s = shm;
 
-        pid_t pid, sid;
-        pid = fork();
-        if (pid < 0) { exit(EXIT_FAILURE); }
-        if (pid > 0) { exit(EXIT_SUCCESS); }
-        umask(0);
-        sid = setsid();
-        if (sid < 0) { exit(EXIT_FAILURE); }
-        if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
+    pid_t pid, sid;
+    pid = fork();
+    if (pid < 0) { exit(EXIT_FAILURE); }
+    if (pid > 0) { exit(EXIT_SUCCESS); }
+    umask(0);
+    sid = setsid();
+    if (sid < 0) { exit(EXIT_FAILURE); }
+    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
     signal( SIGALRM, handle_alarm );
 
@@ -198,10 +224,10 @@ int main(void)
     fclose(key_config);
     if(kdata==2)
     {
+        FILE *fp,*fp1;
         printf("2.8 Display\n");
         printf("Ev Code Recevied: %d\n", (int)ev.code);
         while (1) {
-            FILE *fp,*fp1;
             if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
                 perror("shmat");
                 exit(1);
@@ -239,17 +265,16 @@ int main(void)
                 fprintf(bl,"90000");
                 fclose(bl);
                 //system("sh /opt/daemon_files/standby.sh stop");
+//                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
                     if(CAPS==0)
                     {
-                        task_bar_status[0]='1';
                         CAPS=1;
                     }
                     else if(CAPS==1)
                     {
-                        task_bar_status[0]='2';
                         CAPS=0;
                     }
                 }
@@ -276,44 +301,37 @@ int main(void)
                         countk=0;
                     }
                 }
-                if((int)ev.value==1 && (int)ev.code==1)
-                {
-                    // insert periodic stuff here
-
-
-                    count++;
-                    printf("Count: %d\n",count);
-                    if(count==7)
-                    {
-                        //system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;xdotool windowmap $var;");
-                        system("exec /usr/bin/shutdown &");
-                        printf("LongPress Event\n");
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",1);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",0);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",1);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",0);
-                        fclose(fp1);
-                    }
-
-
-                }
-                if((int)ev.value==0 && (int)ev.code==1)
-                {
-                    count=0;
-                }
             }
             *s++ = task_bar_status[0];
             *s = '\0';
+
+            shutfile=fopen("/usr/share/status/SHUTDOWN_status","r");
+            fscanf(shutfile,"%d",&shutdata);
+            fclose(shutfile);
+            printf("SHUTDATA=%d\n",shutdata);
+
+            if(shutdata==1)
+            {
+                //system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;xdotool windowmap $var;");
+                system("exec /usr/bin/shutdown &");
+                printf("LongPress Event\n");
+                system("echo 0 > /usr/share/status/SHUTDOWN_status");
+                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
+                fprintf(fp1,"%d",1);
+                fclose(fp1);
+                usleep(50000);
+                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
+                fprintf(fp1,"%d",0);
+                fclose(fp1);
+                usleep(50000);
+                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
+                fprintf(fp1,"%d",1);
+                fclose(fp1);
+                usleep(50000);
+                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
+                fprintf(fp1,"%d",0);
+                fclose(fp1);
+            }
         }
     }
     else if(kdata==3)
@@ -371,6 +389,7 @@ int main(void)
                 fprintf(bl,"90000");
                 fclose(bl);
                 //system("sh /opt/daemon_files/standby.sh stop");
+//                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==56 && (int)ev.value==1)
                 {
