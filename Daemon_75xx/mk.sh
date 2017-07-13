@@ -31,6 +31,12 @@ cd $PWD/shutdown
 make
 cp shutdown ../build/shutd
 cd ..
+cd $PWD/Timezone
+source /opt/poky/1.4.3/environment-setup-armv5te-poky-linux-gnueabi
+make
+cp timezone ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
+cp timezone ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
+cd ..
 cp build/* ../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/opt/daemon_files/
 echo "Copied to 7510 Filesystem"
 cp build/* ../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/opt/daemon_files/

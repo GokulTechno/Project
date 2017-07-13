@@ -37,11 +37,7 @@ char level;
 
 int main() {
 
-    char c;
-    int shmid;
-    key_t key;
-    char *shm, *s;
-
+    char c, gpssat[3];
     FILE *fp_bat;
     FILE *fp_status1;
     FILE *fp_tower;
@@ -49,40 +45,35 @@ int main() {
     FILE *fp_batv,*fbatv,*fp_gps;
     char batvolt[4];
 
+    /*Shared Memory Creation*/
+    int shmid;
+    key_t key;
+    char *shm, *s;
     key = 2345;
-
     if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
         perror("shmget");
         exit(1);
     }
-
     if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
         perror("shmat");
         exit(1);
     }
-
     s = shm;
+    /*Shared Memory Creation*/
 
-
+    /*Deamon Process Creation*/
     pid_t pid, sid;
-
     pid = fork();
-
     if (pid < 0) { exit(EXIT_FAILURE); }
-
     if (pid > 0) { exit(EXIT_SUCCESS); }
-
     umask(0);
-
     sid = setsid();
     if (sid < 0) { exit(EXIT_FAILURE); }
-
     if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-
+    /*Deamon Process Creation*/
 
     while(1)
     {
@@ -91,6 +82,7 @@ int main() {
             exit(1);
         }
         s = shm;
+        sleep(1);
 
         fp_batv = fopen("/sys/class/power_supply/NUC970Bat/voltage_now","r");
         fscanf(fp_batv,"%s",batvolt);
@@ -152,33 +144,49 @@ int main() {
         fread(tower, 1, 2, fp_tower);
         fclose(fp_tower);
 
-        task_bar_status[1]=tower[0];
-        task_bar_status[2]=tower[1];
+        int a = atoi(tower);
+
+        printf("Tower Value: %d\n", a);
+        if((a>=1 && a<=15) || a==20)
+        {
+            task_bar_status[1]=tower[0];
+            task_bar_status[2]=tower[1];
+        }
+        else
+        {
+            task_bar_status[1]='0';
+            task_bar_status[2]='0';
+        }
 
         fp_nw = fopen("/opt/daemon_files/ping_status", "r");
         fread(nw_status, 1, 1, fp_nw);
         fclose(fp_nw);
-        task_bar_status[6]=nw_status[0];
+        if(nw_status[0]=='E' || nw_status[0]=='e' || nw_status[0]=='W' || nw_status[0]=='w' || nw_status[0]=='G' || nw_status[0]=='g' )
+        {
+            task_bar_status[6]=nw_status[0];
+        }
+        else
+        {
+            task_bar_status[6]='9';
+        }
 
-        char gpssat[3];
+
         fp_gps = fopen("/opt/sdk/resources/gps_file","r");
         fread(gpssat,3,1,fp_gps);
         fclose(fp_gps);
         if(gpssat[0]=='G')
         {
             task_bar_status[4]='1';
-            memset(gpssat,'\0',sizeof(gpssat));
         }
         else
         {
             task_bar_status[4]='0';
-            memset(gpssat,'\0',sizeof(gpssat));
         }
 
         task_bar_status[0]='^';
         //task_bar_status[2]='~';
         task_bar_status[3]='~'; //GPS notify
-       // task_bar_status[4]='~';
+        // task_bar_status[4]='~';
         task_bar_status[5]='~';
         //task_bar_status[6]='~';
         task_bar_status[7]='~';
@@ -195,7 +203,7 @@ int main() {
         {
             printf("%c",task_bar_status[i]);
         }
-        sleep(2);
+        sleep(1);
     }
 
 }

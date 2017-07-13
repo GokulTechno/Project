@@ -161,6 +161,7 @@ static const char *const evval[3] = {
 
 int main(void)
 {
+    FILE *keymode;
     int shmid,CAPS=0;
     key_t key;
     char *shm, *s;
@@ -196,7 +197,7 @@ int main(void)
     const char *dev = "/dev/input/event0";
     struct input_event ev;
     ssize_t n;
-    int fd,buzzer,count=0,countk=0;
+    int fd,countk=0;
     char num_stat[1],alp_stat[1];
     num_stat[0]='1';
     alp_stat[0]='1';
@@ -212,6 +213,10 @@ int main(void)
     alarm(bdata);
     a_stat=1;
 
+    keymode = fopen("/usr/share/status/KEYPAD_mode","w");
+    fprintf(keymode,"%c",'0');
+    fclose(keymode);
+
     fd = open(dev, O_RDONLY);
     if (fd == -1) {
         fprintf(stderr, "Cannot open %s: %s.\n", dev, strerror(errno));
@@ -224,7 +229,6 @@ int main(void)
     fclose(key_config);
     if(kdata==2)
     {
-        FILE *fp,*fp1;
         printf("2.8 Display\n");
         printf("Ev Code Recevied: %d\n", (int)ev.code);
         while (1) {
@@ -236,9 +240,7 @@ int main(void)
             //task_bar_status[0]='1'; //Small
             //task_bar_status[0]='2'; //Caps
             //task_bar_status[0]='3'; //nums
-            fp = fopen("/usr/share/status/KEYPAD_buzzer","r");
-            fscanf(fp,"%d",&buzzer);
-            fclose(fp);
+
             n = read(fd, &ev, sizeof ev);
             if (n == (ssize_t)-1) {
                 if (errno == EINTR)
@@ -264,7 +266,6 @@ int main(void)
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
                 fprintf(bl,"90000");
                 fclose(bl);
-                //system("sh /opt/daemon_files/standby.sh stop");
 //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
@@ -304,34 +305,6 @@ int main(void)
             }
             *s++ = task_bar_status[0];
             *s = '\0';
-
-            shutfile=fopen("/usr/share/status/SHUTDOWN_status","r");
-            fscanf(shutfile,"%d",&shutdata);
-            fclose(shutfile);
-            printf("SHUTDATA=%d\n",shutdata);
-
-            if(shutdata==1)
-            {
-                //system("export DISPLAY=:0.0;var=`cat /opt/daemon_files/winid`;xdotool windowunmap $var;xdotool windowmap $var;");
-                system("exec /usr/bin/shutdown &");
-                printf("LongPress Event\n");
-                system("echo 0 > /usr/share/status/SHUTDOWN_status");
-                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                fprintf(fp1,"%d",1);
-                fclose(fp1);
-                usleep(50000);
-                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                fprintf(fp1,"%d",0);
-                fclose(fp1);
-                usleep(50000);
-                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                fprintf(fp1,"%d",1);
-                fclose(fp1);
-                usleep(50000);
-                fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                fprintf(fp1,"%d",0);
-                fclose(fp1);
-            }
         }
     }
     else if(kdata==3)
@@ -347,7 +320,6 @@ int main(void)
 
         /*****************************Thread Creation*******************/
         while (1) {
-            FILE *fp,*fp1;
 
             if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
                 perror("shmat");
@@ -359,10 +331,6 @@ int main(void)
             //task_bar_status[0]='2'; //Caps
             //task_bar_status[0]='3'; //nums
 
-
-            fp = fopen("/usr/share/status/KEYPAD_buzzer","r");
-            fscanf(fp,"%d",&buzzer);
-            fclose(fp);
             n = read(fd, &ev, sizeof ev);
             if (n == (ssize_t)-1) {
                 if (errno == EINTR)
@@ -384,11 +352,10 @@ int main(void)
             {
                 alarm(0);
                 alarm(bdata);
-                //system("sh /usr/share/scripts/backlight 4");
+                /*Backlight Set*/
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
                 fprintf(bl,"90000");
                 fclose(bl);
-                //system("sh /opt/daemon_files/standby.sh stop");
 //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==56 && (int)ev.value==1)
@@ -419,35 +386,6 @@ int main(void)
                         alp_stat[0]='1';
                     }
 
-                }
-                if((int)ev.value==2 && (int)ev.code==1)
-                {
-                    count++;
-                    printf("Count: %d\n",count);
-                    if(count==7)
-                    {
-                        system("exec /usr/bin/shutdown &");
-                        printf("LongPress Event\n");
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",1);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",0);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",1);
-                        fclose(fp1);
-                        usleep(50000);
-                        fp1 = fopen("/sys/class/gpio/gpio195/value","w");
-                        fprintf(fp1,"%d",0);
-                        fclose(fp1);
-                    }
-                }
-                if((int)ev.value==0 && (int)ev.code==1)
-                {
-                    count=0;
                 }
             }
             *s++ = task_bar_status[0];

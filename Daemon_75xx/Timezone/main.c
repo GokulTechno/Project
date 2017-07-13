@@ -14,14 +14,14 @@ int main(int argc, char **argv)
     memcpy(minutes,&datetime[3],2);
     memcpy(seconds,&datetime[6],2);
 
-    ihours=atoi(hours)+5;
-    iminutes=atoi(minutes)+30;
+    ihours=atoi(hours)+atoi(argv[2]);
+    iminutes=atoi(minutes)+atoi(argv[3]);
 
-    if(ihours>24)
+    if(ihours>=24)
     {
         ihours=ihours-24;
     }
-    if(iminutes>60)
+    if(iminutes>=60)
     {
         ihours=ihours+1;
         iminutes=iminutes-60;

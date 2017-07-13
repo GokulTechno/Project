@@ -53,6 +53,20 @@ int i=0;
 
 //------------ GPIO ------------------------
 
+
+void gpio_init(void);
+void gpio_process(int pin_no, int direction);
+
+void gpio_init()
+{
+    gpio_process(290,1); //Battery Status 1
+    gpio_process(292,1); //Battery Status 2
+    gpio_process(42,0);  //3.8v Regulator
+    gpio_process(288,0); //GPRS Enable
+
+
+}
+
 void gpio(int pin_no,char gpiovalue)
 {
     char start[100]="/sys/class/gpio/gpio";
@@ -71,6 +85,34 @@ void gpio(int pin_no,char gpiovalue)
     fgpio=fopen(start, "w");
     fwrite(&gpiovalue,1,1,fgpio);
     fclose(fgpio);
+}
+/* 0 = Direction Out */
+/* 1 = Direction Out */
+void gpio_process(int pin_no, int direction)
+{
+    char start[100]="/sys/class/gpio/gpio";
+    char end[100]="/direction";
+    char gpio_pin[5];
+    sprintf(gpio_pin, "%d", pin_no);
+
+    strcat(start,gpio_pin);
+    strcat(start,end);
+
+    FILE *egpio, *dgpio;
+    egpio = fopen("/sys/class/gpio/export","w");
+    fprintf(egpio,"%d",pin_no);
+    fclose(egpio);
+
+    dgpio = fopen(start,"w");
+    if(direction==0)
+    {
+        fprintf(dgpio,"%s","out");
+    }
+    else if(direction==1)
+    {
+        fprintf(dgpio,"%s","in");
+    }
+    fclose(dgpio);
 }
 
 int main(int argc, char *argv[]) {
@@ -133,7 +175,7 @@ int main(int argc, char *argv[]) {
     while(1)
     {
         while (*shm != '^')
-        sleep(1);
+            sleep(1);
         printf("received.......\n");
         int i=0;
         for (s = shm; *s != '\0'; s++)
@@ -154,11 +196,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-//                    if(usb_hub==0)
-//                    {
-//                        gpio(usb_hub_enable,'1');
-//                        usb_hub=1;
-//                    }
+                    //                    if(usb_hub==0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'1');
+                    //                        usb_hub=1;
+                    //                    }
                     if(audio==0)
                     {
                         //gpio(audio_camera_switch,'1');
@@ -168,11 +210,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-//                    if(usb_hub!=0)
-//                    {
-//                        gpio(usb_hub_enable,'0');
-//                        usb_hub=0;
-//                    }
+                    //                    if(usb_hub!=0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'0');
+                    //                        usb_hub=0;
+                    //                    }
                     if(audio!=0)
                     {
                         gpio(audio_power,'0');
@@ -223,11 +265,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-//                    if(usb_hub==0)
-//                    {
-//                        gpio(usb_hub_enable,'1');
-//                        usb_hub=1;
-//                    }
+                    //                    if(usb_hub==0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'1');
+                    //                        usb_hub=1;
+                    //                    }
                     if(camera==0)
                     {
                         gpio(future_power,'1');
@@ -236,11 +278,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-//                    if(usb_hub!=0)
-//                    {
-//                        gpio(usb_hub_enable,'0');
-//                        usb_hub=0;
-//                    }
+                    //                    if(usb_hub!=0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'0');
+                    //                        usb_hub=0;
+                    //                    }
                     if(camera!=0)
                     {
                         gpio(future_power,'0');
@@ -256,11 +298,11 @@ int main(int argc, char *argv[]) {
 
                 if(status_buff[5]=='1')
                 {
-//                    if(usb_hub==0)
-//                    {
-//                        gpio(usb_hub_enable,'1');
-//                        usb_hub=1;
-//                    }
+                    //                    if(usb_hub==0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'1');
+                    //                        usb_hub=1;
+                    //                    }
                     if(fp==0)
                     {
                         gpio(fingerprint_power,'1');
@@ -269,11 +311,11 @@ int main(int argc, char *argv[]) {
                 }
                 else
                 {
-//                    if(usb_hub!=0)
-//                    {
-//                        gpio(usb_hub_enable,'0');
-//                        usb_hub=0;
-//                    }
+                    //                    if(usb_hub!=0)
+                    //                    {
+                    //                        gpio(usb_hub_enable,'0');
+                    //                        usb_hub=0;
+                    //                    }
                     if(fp!=0)
                     {
                         gpio(fingerprint_power,'0');
