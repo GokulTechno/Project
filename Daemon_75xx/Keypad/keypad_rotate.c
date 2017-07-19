@@ -23,43 +23,23 @@ FILE *bl;
 
 char task_bar_status[1];
 pthread_t tid[2];
-int a_stat=0,shutdata=0;
+int a_stat=0,shutdata=0,backlight_status=0;
 
 volatile sig_atomic_t thread_stat = 0;
 
 void standby(int value)
 {
-    pid_t pid1 = proc_find("/opt/daemon_files/gpiod");
-    pid_t pid2 = proc_find("/opt/daemon_files/taskd");
-    pid_t pid3 = proc_find("/opt/daemon_files/toold");
-    pid_t pid4 = proc_find("/usr/bin/toolbar");
-    pid_t pid5 = proc_find("/opt/daemon_files/netd");
-    switch(value)
-    {
-    case 0:
-        kill(pid1,SIGSTOP);
-        kill(pid2,SIGSTOP);
-        kill(pid3,SIGSTOP);
-        kill(pid4,SIGSTOP);
-        kill(pid5,SIGSTOP);
-        break;
-    case 1:
-        kill(pid1,SIGCONT);
-        kill(pid2,SIGCONT);
-        kill(pid3,SIGCONT);
-        kill(pid4,SIGCONT);
-        kill(pid5,SIGCONT);
-        break;
-    }
+    system("/opt/daemon_files/pkill start");
 }
 
 void handle_alarm( int sig )
 {
     printf("Alarm Called\n");
-//    standby(0);
+    //    standby(0);
     bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
     fprintf(bl,"500");
     fclose(bl);
+    backlight_status=0;
 }
 
 /*********************************Pthread Job*********************************/
@@ -94,7 +74,7 @@ void* doSomeThing(void *arg)
                     fprintf(bl,"500");
                     fclose(bl);
                     //system("sh /opt/daemon_files/standby.sh stop");
-//                    standby(1);
+                    //                    standby(1);
                     alarm(0);
                     alarm(bdata);
                 }
@@ -263,10 +243,13 @@ int main(void)
                 alarm(0);
                 alarm(bdata);
                 //system("sh /usr/share/scripts/backlight 4");
+
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
                 fprintf(bl,"90000");
                 fclose(bl);
-//                standby(1);
+                backlight_status=1;
+
+                //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
@@ -286,19 +269,19 @@ int main(void)
                         printf("Small set\n");
                         if(CAPS==0)
                         {
-                            task_bar_status[0]='1';
+                            task_bar_status[0]=0x31;
                             countk=1;
                         }
                         else if(CAPS==1)
                         {
-                            task_bar_status[0]='2';
+                            task_bar_status[0]=0x32;
                             countk=1;
                         }
                     }
                     else if(countk==1)
                     {
                         printf("Num set\n");
-                        task_bar_status[0]='3';
+                        task_bar_status[0]=0x33;
                         countk=0;
                     }
                 }
@@ -356,7 +339,7 @@ int main(void)
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
                 fprintf(bl,"90000");
                 fclose(bl);
-//                standby(1);
+                //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==56 && (int)ev.value==1)
                 {
@@ -368,7 +351,7 @@ int main(void)
                     }
                     else if(num_stat[0]=='0')
                     {
-                        task_bar_status[0]='3';
+                        task_bar_status[0]=0x33;
                         num_stat[0]='1';
                     }
 
@@ -377,12 +360,12 @@ int main(void)
                 {
                     if(alp_stat[0]=='1')
                     {
-                        task_bar_status[0]='2';
+                        task_bar_status[0]=0x32;
                         alp_stat[0]='2';
                     }
                     else if(alp_stat[0]=='2')
                     {
-                        task_bar_status[0]='1';
+                        task_bar_status[0]=0x31;
                         alp_stat[0]='1';
                     }
 

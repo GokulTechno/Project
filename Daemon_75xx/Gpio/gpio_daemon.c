@@ -15,6 +15,7 @@
 #include <sys/wait.h> /* for wait */
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <dirent.h>
 
 #define SHMSZ     27
 #define ERROR(fmt, ...) do { printf(fmt, __VA_ARGS__); return -1; } while(0)
@@ -26,6 +27,7 @@
 #define gps_power 174
 #define gps_fix 173
 #define rfid_power 35
+#define rfid_io_enable 109
 #define bar_power 196
 #define bar_trig 197
 #define usb_hub_enable 143
@@ -39,13 +41,14 @@ char WAITING[8] = "WAITING";
 char SUCCESS[8] = "SUCCESS";
 char FAILURE[8] = "FAILURE";
 
-char status_buff[100],gprs_power[2],wifi_power[2];
+char status_buff[100],gprs_power[2],wifi_power[2],gpssat[5];
 int v5=0,usb_hub=0,fp=0,magnetic=0,rfid=0,sam=0,smart=0,camera=0,bar=0,audio=0,gps=0,idel=0;
 char module_on_off[20];
 
 FILE *fp_remote_modules;
 FILE *fgprs_power;
 FILE *fwifi_power;
+FILE *fp_gps;
 
 pid_t nfcp;
 
@@ -56,6 +59,49 @@ int i=0;
 
 void gpio_init(void);
 void gpio_process(int pin_no, int direction);
+
+pid_t proc_find(const char* name)
+{
+    DIR* dir;
+    struct dirent* ent;
+    char* endptr;
+    char buf[512];
+
+    if (!(dir = opendir("/proc"))) {
+        perror("can't open /proc");
+        return -1;
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+        /* if endptr is not a null character, the directory is not
+         * entirely numeric, so ignore it */
+        long lpid = strtol(ent->d_name, &endptr, 10);
+        if (*endptr != '\0') {
+            continue;
+        }
+
+        /* try to open the cmdline file */
+        snprintf(buf, sizeof(buf), "/proc/%ld/cmdline", lpid);
+        FILE* fp = fopen(buf, "r");
+
+        if (fp) {
+            if (fgets(buf, sizeof(buf), fp) != NULL) {
+                /* check the first token in the file, the program name */
+                char* first = strtok(buf, " ");
+                if (!strcmp(first, name)) {
+                    fclose(fp);
+                    closedir(dir);
+                    return (pid_t)lpid;
+                }
+            }
+            fclose(fp);
+        }
+
+    }
+
+    closedir(dir);
+    return -1;
+}
 
 void gpio_init()
 {
@@ -141,28 +187,20 @@ int main(int argc, char *argv[]) {
     *s = '\0';
 
     //printf("send\n");
-
     pid_t pid, sid;
-
     //Fork the Parent Process
     pid = fork();
-
     if (pid < 0) { exit(EXIT_FAILURE); }
-
     //We got a good pid, Close the Parent Process
     if (pid > 0) { exit(EXIT_SUCCESS); }
-
     //Change File Mask
     umask(0);
-
     //Create a new Signature Id for our child
     sid = setsid();
     if (sid < 0) { exit(EXIT_FAILURE); }
-
     //Change Directory
     //If we cant find the directory we exit with failure.
     if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-
     //Close Standard File Descriptors
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
@@ -272,6 +310,8 @@ int main(int argc, char *argv[]) {
                     //                    }
                     if(camera==0)
                     {
+                        gpio(camera_reg1,'1');
+                        gpio(camera_reg2,'1');
                         gpio(future_power,'1');
                         camera=1;
                     }
@@ -285,6 +325,8 @@ int main(int argc, char *argv[]) {
                     //                    }
                     if(camera!=0)
                     {
+                        gpio(camera_reg1,'0');
+                        gpio(camera_reg2,'0');
                         gpio(future_power,'0');
                         camera=0;
                     }
@@ -363,6 +405,7 @@ magnetic=0;
                     if(rfid==0)
                     {
                         gpio(rfid_power,'1');
+//                        gpio(rfid_io_enable,'1');
                         rfid=1;
                     }
                 }
@@ -371,6 +414,7 @@ magnetic=0;
                     if(rfid!=0)
                     {
                         gpio(rfid_power,'0');
+//                        gpio(rfid_io_enable,'0');
                         rfid=0;
                     }
                 }

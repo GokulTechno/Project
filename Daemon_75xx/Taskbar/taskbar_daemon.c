@@ -30,10 +30,55 @@ unsigned int bat_NoOfBytes;
 unsigned int bat_Temp=0;
 unsigned int bat_level=0;
 unsigned char bat_Dummy=0;
+int low_bat_count=0;
 
+int a;
 
 int i=0,bat_count=0,bat_status_check=0,present_level,level_changes=5,level_up,ntp=0;
 char level;
+
+pid_t proc_find(const char* name)
+{
+    DIR* dir;
+    struct dirent* ent;
+    char* endptr;
+    char buf[512];
+
+    if (!(dir = opendir("/proc"))) {
+        perror("can't open /proc");
+        return -1;
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+        /* if endptr is not a null character, the directory is not
+         * entirely numeric, so ignore it */
+        long lpid = strtol(ent->d_name, &endptr, 10);
+        if (*endptr != '\0') {
+            continue;
+        }
+
+        /* try to open the cmdline file */
+        snprintf(buf, sizeof(buf), "/proc/%ld/cmdline", lpid);
+        FILE* fp = fopen(buf, "r");
+
+        if (fp) {
+            if (fgets(buf, sizeof(buf), fp) != NULL) {
+                /* check the first token in the file, the program name */
+                char* first = strtok(buf, " ");
+                if (!strcmp(first, name)) {
+                    fclose(fp);
+                    closedir(dir);
+                    return (pid_t)lpid;
+                }
+            }
+            fclose(fp);
+        }
+
+    }
+
+    closedir(dir);
+    return -1;
+}
 
 int main() {
 
@@ -82,11 +127,81 @@ int main() {
             exit(1);
         }
         s = shm;
-        sleep(1);
+
+        task_bar_status[0]='^';
+        task_bar_status[1]=0x30;
+        task_bar_status[2]=0x30;
+        task_bar_status[3]='~'; //GPS notify
+        task_bar_status[4]=0x30;
+        task_bar_status[5]='~';
+        task_bar_status[6]=0x30;
+        task_bar_status[7]='~';
+        task_bar_status[8]='+';
+        task_bar_status[9]=0x30;
+        task_bar_status[10]='!';
+
+        fp_tower = fopen("/opt/daemon_files/tower_value", "r");
+        fread(tower, 1, 2, fp_tower);
+        fclose(fp_tower);
+
+        //        printf("Char-1: %c\n",tower[0]);
+        //        printf("Char-2: %c\n",tower[1]);
+
+        a=atoi(tower);
+        printf("Tower Value: %d\n",a);
+
+        if(a>=0 && a<=9)
+        {
+            task_bar_status[1]=0x30;
+            task_bar_status[2]=tower[0];
+        }
+        else if(a>=10 && a<=20)
+        {
+            task_bar_status[1]=tower[0];
+            task_bar_status[2]=tower[1];
+        }
+
+        fp_gps = fopen("/opt/sdk/resources/gps_file","r");
+        fread(gpssat,3,1,fp_gps);
+        fclose(fp_gps);
+        if(gpssat[0]=='G')
+        {
+            task_bar_status[4]=0x31;
+            pid_t gpid;
+            gpid = proc_find("/opt/daemon_files/gpsd");
+            printf("GPS PID: %d", gpid);
+            if(gpid == -1)
+            {
+                system("/opt/daemon_files/gpsd");
+                printf("Launching Gps Daemon\n");
+                sleep(1);
+            }
+
+        }
+        else
+        {
+            task_bar_status[4]=0x30;
+        }
+
+        fp_nw = fopen("/opt/daemon_files/ping_status", "r");
+        fread(nw_status, 1, 1, fp_nw);
+        fclose(fp_nw);
+
+        if(nw_status[0]== 'E' ||nw_status[0]== 'e' ||nw_status[0]== 'W' || nw_status[0]== 'w' || nw_status[0]== 'G' || nw_status[0]== 'g')
+        {
+            task_bar_status[6]=nw_status[0];
+        }
+        else
+        {
+            task_bar_status[6]=0x30;
+        }
 
         fp_batv = fopen("/sys/class/power_supply/NUC970Bat/voltage_now","r");
         fscanf(fp_batv,"%s",batvolt);
         fclose(fp_batv);
+
+        int vol;
+        vol=atoi(batvolt);
 
         fbatv = fopen("/opt/daemon_files/bat_level","w");
         fwrite(batvolt,1,sizeof(batvolt),fbatv);
@@ -99,101 +214,64 @@ int main() {
 
         if(bat_Temp<100 && bat_Temp>=94)
         {
-            task_bar_status[9]='5';
+            task_bar_status[9]=0x35;
+            low_bat_count=0;
         }
-        else if(bat_Temp<94 && bat_Temp>=89)
+        else if(bat_Temp<=93 && bat_Temp>=90)
         {
-            task_bar_status[9]='4';
+            task_bar_status[9]=0x34;
+            low_bat_count=0;
         }
-        else if(bat_Temp<89 && bat_Temp>=84)
+        else if(bat_Temp<=89 && bat_Temp>=86)
         {
-            task_bar_status[9]='3';
+            task_bar_status[9]=0x33;
+            low_bat_count=0;
         }
-        else if(bat_Temp<84 && bat_Temp>=79)
+        else if(bat_Temp<=85 && bat_Temp>=82)
         {
-            task_bar_status[9]='2';
+            task_bar_status[9]=0x32;
+            low_bat_count=0;
         }
-        else if(bat_Temp<79 && bat_Temp>=74)
+        else if(bat_Temp<=81 && bat_Temp>=77)
         {
-            task_bar_status[9]='1';
+            task_bar_status[9]=0x31;
+            low_bat_count=0;
         }
-        else if(bat_Temp<74 && bat_Temp>=72)
+        else if(bat_Temp==76)
         {
-            task_bar_status[9]='0';
+            task_bar_status[9]=0x30;
+            low_bat_count=0;
         }
-        else if(bat_Temp<72)
+        else if(bat_Temp<=75)
         {
-            task_bar_status[9]='7';
+            low_bat_count++;
+            printf("Low Battery Count: %d\n",low_bat_count);
+            if(low_bat_count>=10)
+            {
+                task_bar_status[9]=0x37;  //Low Battery Notification
+            }
         }
 
         fp_status1 = fopen("/sys/class/gpio/gpio110/value", "r");
         fread(charger_status1, 1, 1, fp_status1);
         fclose(fp_status1);
 
-        if(charger_status1[0] == '0')
+        if(vol>=4885)
         {
-            task_bar_status[8]='+';
-            present_level=5;
-        }
-        else if(charger_status1[0] == '1')
-        {
-            task_bar_status[8]='-';
-        }
-
-        fp_tower = fopen("/opt/daemon_files/tower_value", "r");
-        fread(tower, 1, 2, fp_tower);
-        fclose(fp_tower);
-
-        int a = atoi(tower);
-
-        printf("Tower Value: %d\n", a);
-        if((a>=1 && a<=15) || a==20)
-        {
-            task_bar_status[1]=tower[0];
-            task_bar_status[2]=tower[1];
+            task_bar_status[8]='0';
         }
         else
         {
-            task_bar_status[1]='0';
-            task_bar_status[2]='0';
+            if(charger_status1[0] == '0')
+            {
+                task_bar_status[8]='+';
+                present_level=5;
+            }
+            else if(charger_status1[0] == '1')
+            {
+                task_bar_status[8]='-';
+            }
         }
-
-        fp_nw = fopen("/opt/daemon_files/ping_status", "r");
-        fread(nw_status, 1, 1, fp_nw);
-        fclose(fp_nw);
-        if(nw_status[0]=='E' || nw_status[0]=='e' || nw_status[0]=='W' || nw_status[0]=='w' || nw_status[0]=='G' || nw_status[0]=='g' )
-        {
-            task_bar_status[6]=nw_status[0];
-        }
-        else
-        {
-            task_bar_status[6]='9';
-        }
-
-
-        fp_gps = fopen("/opt/sdk/resources/gps_file","r");
-        fread(gpssat,3,1,fp_gps);
-        fclose(fp_gps);
-        if(gpssat[0]=='G')
-        {
-            task_bar_status[4]='1';
-        }
-        else
-        {
-            task_bar_status[4]='0';
-        }
-
-        task_bar_status[0]='^';
-        //task_bar_status[2]='~';
-        task_bar_status[3]='~'; //GPS notify
-        // task_bar_status[4]='~';
-        task_bar_status[5]='~';
-        //task_bar_status[6]='~';
-        task_bar_status[7]='~';
-        //task_bar_status[9]='!';
-        task_bar_status[10]='!';
-
-
         for (c = 0; c < 11; c++)
         {
             *s++ = task_bar_status[c];
@@ -203,6 +281,7 @@ int main() {
         {
             printf("%c",task_bar_status[i]);
         }
+        printf("\n");
         sleep(1);
     }
 

@@ -40,8 +40,22 @@ int main(void) {
         fprintf(fp,"latitude        -%lf\n",data.latitude);
         fprintf(fp,"longitude       -%lf\n",data.longitude);
         fprintf(fp,"time utc        -Null\n");
-        fprintf(fp,"altitude (m)    -%f\n",data.altitude);
-        fprintf(fp,"speed (m/s)     -%d\n",data.speed);
+        if(data.altitude>=50 && data.altitude<=8000)
+        {
+            fprintf(fp,"altitude (m)    -%.2f\n",data.altitude);
+        }
+        else
+        {
+            fprintf(fp,"altitude (m)    -0\n");
+        }
+        if(data.speed>=5 && data.speed<=150)
+        {
+            fprintf(fp,"speed (m/s)     -%d\n",data.speed);
+        }
+        else
+        {
+            fprintf(fp,"speed (m/s)     -0\n");
+        }
         fflush(fp);
         fclose(fp);
 

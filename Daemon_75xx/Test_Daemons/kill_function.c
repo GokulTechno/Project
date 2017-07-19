@@ -53,16 +53,16 @@ pid_t proc_find(const char* name)
 
 void standby(int value)
 {
-//    pid_t pid1 = proc_find("/opt/daemon_files/gpiod");
-    pid_t pid2 = proc_find("/opt/daemon_files/taskd");
-    pid_t pid3 = proc_find("/opt/daemon_files/toold");
-    pid_t pid4 = proc_find("/usr/bin/toolbar");
-    pid_t pid5 = proc_find("/opt/daemon_files/netd");
+    pid_t pid1 = proc_find("/usr/bin/background");
+    pid_t pid2 = proc_find("/opt/daemon_files/netd");
+    pid_t pid3 = proc_find("/opt/daemon_files/taskd");
+    pid_t pid4 = proc_find("/lib/udev/udevd");
+    pid_t pid5 = proc_find("/opt/daemon_files/gpiod");
     pid_t pid6 = proc_find("/opt/daemon_files/keyd");
     switch(value)
     {
         case 0:
-//            kill(pid1,SIGSTOP);
+            kill(pid1,SIGSTOP);
             kill(pid2,SIGSTOP);
             kill(pid3,SIGSTOP);
             kill(pid4,SIGSTOP);
@@ -70,7 +70,7 @@ void standby(int value)
             kill(pid6,SIGSTOP);
         break;
         case 1:
-//            kill(pid1,SIGCONT);
+            kill(pid1,SIGCONT);
             kill(pid2,SIGCONT);
             kill(pid3,SIGCONT);
             kill(pid4,SIGCONT);
