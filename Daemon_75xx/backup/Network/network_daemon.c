@@ -27,7 +27,6 @@
 #include <dirent.h>
 #include <linux/poll.h>
 
-
 #ifndef IW_NAME
 #define IW_NAME "wlan0"
 #endif
@@ -43,16 +42,6 @@ int wifi_up_down_status=0, enable_gprs_status=0, enable_wifi_status=0,ntp_status
 int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0,resol=0;
 pthread_t tid[2];
 int a=0;
-
-#define BAUDRATE B9600
-/* change this definition for the correct port */
-#define MODEMDEVICE "/dev/mux1"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
-
-void signal_handler_IO (int status);   /* definition of signal handler */
-int wait_flag=TRUE;                    /* TRUE while no signal received */
 
 int mux_fd;
 FILE *wifichk;
@@ -70,6 +59,8 @@ void handle_alarm( int sig )
     t_stat=1;
 }
 
+#define BAUDRATE B115200
+
 static void wifi_signal(void)
 {
     int end, loop, line;
@@ -78,7 +69,9 @@ static void wifi_signal(void)
     FILE *fd = fopen("/proc/net/wireless", "r");
     if(fd)
     {
+
         line=3;
+
         for(end = loop = 0;loop<line;++loop){
             if(0==fgets(str, sizeof(str), fd)){//include '\n'
                 end = 1;//can't input (EOF)
@@ -154,50 +147,23 @@ static void operator_check(void)
     t_stat=0;
     signal( SIGALRM, handle_alarm );
 
-    int fd, res;
     struct termios oldtio,newtio;
-    char buf[128];
-
-    volatile int STOP=FALSE;
-
-    fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(MODEMDEVICE); exit(-1); }
-
-    fcntl(fd, F_SETFL, O_NONBLOCK);
-
-    tcgetattr(fd,&oldtio); /* save current serial port settings */
+    mux_fd = open("/dev/mux1", O_RDWR | O_NOCTTY );
+    tcgetattr(mux_fd,&oldtio); /* save current serial port settings */
     bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
-
-    newtio.c_cflag = BAUDRATE | CRTSCTS | CS8 | CLOCAL | CREAD;
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR | ICRNL;
     newtio.c_oflag = 0;
     newtio.c_lflag = ICANON;
-
-    newtio.c_cc[VINTR]    = 0;     /* Ctrl-c */
-    newtio.c_cc[VQUIT]    = 0;     /* Ctrl-\ */
-    newtio.c_cc[VERASE]   = 0;     /* del */
-    newtio.c_cc[VKILL]    = 0;     /* @ */
-    newtio.c_cc[VEOF]     = 4;     /* Ctrl-d */
-    newtio.c_cc[VTIME]    = 0;     /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;     /* blocking read until 1 character arrives */
-    newtio.c_cc[VSWTC]    = 0;     /* '\0' */
-    newtio.c_cc[VSTART]   = 0;     /* Ctrl-q */
-    newtio.c_cc[VSTOP]    = 0;     /* Ctrl-s */
-    newtio.c_cc[VSUSP]    = 0;     /* Ctrl-z */
-    newtio.c_cc[VEOL]     = 0;     /* '\0' */
-    newtio.c_cc[VREPRINT] = 0;     /* Ctrl-r */
-    newtio.c_cc[VDISCARD] = 0;     /* Ctrl-u */
-    newtio.c_cc[VWERASE]  = 0;     /* Ctrl-w */
-    newtio.c_cc[VLNEXT]   = 0;     /* Ctrl-v */
-    newtio.c_cc[VEOL2]    = 0;     /* '\0' */
+    tcflush(mux_fd, TCIFLUSH);
+    tcsetattr(mux_fd,TCSANOW,&newtio);
 
     printf("Signal check \n");
-    tcflush(fd, TCIFLUSH);
-    tcsetattr(fd,TCSANOW,&newtio);
+    fcntl(mux_fd, F_SETFL, O_NONBLOCK);
+    write(mux_fd, gsmops, sizeof(gsmops));
 
-    write(fd, gsmops, sizeof(gsmops));
-
-    while (STOP==FALSE) {
+    while(1)
+    {
         if ( thread_stat == 0 ) {
             thread_stat=1;
             alarm(0);
@@ -205,26 +171,43 @@ static void operator_check(void)
         }
         if(t_stat==1){
             t_stat=0;
-            STOP=TRUE;
+            break;
         }
-        usleep(50000);
-        res = read(fd, buf, sizeof(buf));
-        buf[res]=0;
-        printf("Data1: %s\n",buf);
-        if(buf[0]=='+' && buf[1]=='C' && buf[2]=='O' && buf[3]=='P')
+        count++;
+        read(mux_fd, read_buffer, sizeof(read_buffer));
+        if(read_buffer[0]=='+' && read_buffer[1]=='C' && read_buffer[2]=='O' && read_buffer[3]=='P')
         {
+            //                printf("CSQ Received!!!\n");
             fdt = open("/opt/daemon_files/rough_files/current_operator", O_RDWR | O_NOCTTY );
-            write(fdt,buf,sizeof(buf));
+            write(fdt,read_buffer,sizeof(read_buffer));
             close(fdt);
-            STOP=TRUE;
+            break;
         }
-        memset(buf,0x00,sizeof(buf));
+        memset(read_buffer,0,sizeof(read_buffer));
+
     }
+    close(mux_fd);
+}
+static void signal_check(void)
+{
+    signal( SIGALRM, handle_alarm );
+    t_stat=0;
+    struct termios oldtio,newtio;
+    mux_fd = open("/dev/mux1", O_RDWR | O_NOCTTY );
+    tcgetattr(mux_fd,&oldtio); /* save current serial port settings */
+    bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_iflag = IGNPAR | ICRNL;
+    newtio.c_oflag = 0;
+    newtio.c_lflag = ICANON;
+    tcflush(mux_fd, TCIFLUSH);
+    tcsetattr(mux_fd,TCSANOW,&newtio);
 
-    STOP=FALSE;
-    write(fd,gsmcsq,sizeof(gsmcsq));
+    printf("Signal check \n");
+    fcntl(mux_fd, F_SETFL, O_NONBLOCK);
+    write(mux_fd,gsmcsq,sizeof(gsmcsq));
 
-    while(STOP==FALSE)
+    while(1)
     {
         if ( thread_stat == 0 ) {
             thread_stat=1;
@@ -234,24 +217,22 @@ static void operator_check(void)
         if(t_stat==1)
         {
             t_stat=0;
-            STOP=TRUE;
+            break;
         }
-        usleep(50000);
-        res = read(fd, buf, sizeof(buf));
-        buf[res]=0;
-        printf("Data2: %s\n",buf);
-        if(buf[0]=='+' && buf[1]=='C' && buf[2]=='S' && buf[3]=='Q')
+        read(mux_fd, read_buffer, sizeof(read_buffer));
+        //		printf("%s\n",read_buff);
+        if(read_buffer[0]=='+' && read_buffer[1]=='C' && read_buffer[2]=='S' && read_buffer[3]=='Q')
         {
-            printf("CSQ Received!!!\n");
+            //                      printf("CSQ Received!!!\n");
             char sig[2];
-            sig[0]=buf[6];
-            sig[1]=buf[7];
+            sig[0]=read_buffer[6];
+            sig[1]=read_buffer[7];
             sig[2]='\0';
             FILE *fd_csq;
             fd_csq = fopen("/opt/daemon_files/rough_files/signal_level","w");
             if(fd_csq)
             {
-                fprintf(fd_csq,buf,8);
+                fprintf(fd_csq,read_buffer,8);
                 fclose(fd_csq);
             }
             int sig_int=atoi(sig);
@@ -277,16 +258,16 @@ static void operator_check(void)
                 write(fdt,"10",2);
             }
             close(fdt);
-            STOP=TRUE;
+            break;
         }
-        memset(buf,0x00,sizeof(buf));
+        memset(read_buffer,0,sizeof(read_buffer));
     }
-    tcsetattr(fd,TCSANOW,&oldtio);
-    close(fd);
+    close(mux_fd);
 }
-
 static void disable_gprs(void)
 {
+    system("killall pppd ");
+    sleep(1);
     system("killall gsmMuxd ");
 
     fgprspwr = fopen("/sys/class/gpio/gpio42/value", "w");
@@ -515,7 +496,12 @@ static void ping(int a)
             ping_count++;
             if(ntp_status!=1)
             {
+                //                pid_t child3;
+                //                child3=fork();
+                //                if(child3==0)
+                //                {
                 system("sh /opt/daemon_files/ntp_new.sh &");
+                //                }
                 ntp_status=1;
             }
         }
@@ -546,7 +532,12 @@ static void ping(int a)
             ping_count++;
             if(ntp_status!=1)
             {
+                //                pid_t child3;
+                //                child3=fork();
+                //                if(child3==0)
+                //                {
                 system("sh /opt/daemon_files/ntp_new.sh &");
+                //                }
                 ntp_status=1;
             }
 
@@ -580,7 +571,12 @@ static void ping(int a)
             count=0;
             if(ntp_status!=1)
             {
+                //                pid_t child3;
+                //                child3=fork();
+                //                if(child3==0)
+                //                {
                 system("sh /opt/daemon_files/ntp_new.sh &");
+                //                }
                 ntp_status=1;
             }
         }
@@ -597,6 +593,94 @@ static void ping(int a)
 
     }
 }
+
+//static void ping(int a)
+//{
+//    switch (a) {
+//    case 1:
+//        if ( system("ping -w 3 8.8.8.8 > /dev/null") == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","E");
+//            fclose(fping);
+//            printf("Pinging !!!\n");
+//            if(ntp_status!=1)
+//            {
+//                pid_t child1;
+//                child1=fork();
+//                if(child1==0)
+//                {
+//                    system("sh /opt/daemon_files/ntp_new.sh &");
+//                }
+//                ntp_status=1;
+//            }
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","e");
+//            fclose(fping);
+
+//        }
+//        break;
+//    case 2:
+//        if ( system("ping -w 3 8.8.8.8 > /dev/null") == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","W");
+//            fclose(fping);
+//            //printf ("\n Exists");
+//            //            ping_value=1;
+
+//            printf("Pinging !!!\n");
+//            if(ntp_status!=1)
+//            {
+//                pid_t child2;
+//                child2=fork();
+//                if(child2==0)
+//                {
+//                    system("sh /opt/daemon_files/ntp_new.sh &");
+//                }
+//                ntp_status=1;
+//            }
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","w");
+//            fclose(fping);
+//        }
+//        break;
+//    case 3:
+//        if ( system("ping -w 3 8.8.8.8 > /dev/null ") == 0)
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","G");
+//            fclose(fping);
+//            //printf ("\n Exists");
+//            //            ping_value=1;
+
+//            printf("Pinging !!!\n");
+//            if(ntp_status!=1)
+//            {
+//                pid_t child3;
+//                child3=fork();
+//                if(child3==0)
+//                {
+//                    system("sh /opt/daemon_files/ntp_new.sh &");
+//                }
+//                ntp_status=1;
+//            }
+//        }
+//        else
+//        {
+//            fping = fopen("/opt/daemon_files/ping_status", "w");
+//            fprintf(fping,"%s","g");
+//            fclose(fping);
+//        }
+//        break;
+//    }
+//}
 
 void wlan0_up(void)
 {
@@ -660,21 +744,57 @@ pid_t proc_find(const char* name)
     return -1;
 }
 
+void* gprs_signal_check_thread(void *arg)
+{
+    pthread_t id = pthread_self();
+    if(pthread_equal(id,tid[0]))
+    {
+        sleep(1);
+        while(1)
+        {
+            printf("\n GPRS Signal Thread processing\n");
+            pid_t pid = proc_find("gsmMuxd");
+            printf("Pid GSMMUXD:%d\n",pid);
+            if ((pid == -1) || status_buff[1]=='1' || status_buff[3]=='1' || status_buff[5]=='0')
+            {
+                printf("GPRS Signal Thread Killed\n");
+                ftower_value = fopen("/opt/daemon_files/tower_value","w");
+                if(ftower_value)
+                {
+                    fprintf(ftower_value,"%s","0");
+                    fclose(ftower_value);
+                }
+                gprs_signal_check_thread_status=0;
+                pthread_cancel(&tid[0]);
+                break;
+            }
+            else
+            {
+                signal_check();
+                sleep(2);
+                operator_check();
+                sleep(2);
+            }
+        }
+    }
+    return NULL;
+}
+
 //----------- Main --------------------------
 
 int main()
 {
-    pid_t pid, sid;
-    pid = fork();
-    if (pid < 0) { exit(EXIT_FAILURE); }
-    if (pid > 0) { exit(EXIT_SUCCESS); }
-    umask(0);
-    sid = setsid();
-    if (sid < 0) { exit(EXIT_FAILURE); }
-    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
+    //    pid_t pid, sid;
+    //    pid = fork();
+    //    if (pid < 0) { exit(EXIT_FAILURE); }
+    //    if (pid > 0) { exit(EXIT_SUCCESS); }
+    //    umask(0);
+    //    sid = setsid();
+    //    if (sid < 0) { exit(EXIT_FAILURE); }
+    //    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+    //    close(STDIN_FILENO);
+    //    close(STDOUT_FILENO);
+    //    close(STDERR_FILENO);
 
     while(1)
     {
@@ -761,6 +881,7 @@ int main()
                 }
                 else
                 {
+                    signal_check();
                     sleep(1);
                     operator_check();
                     sleep(1);
@@ -769,6 +890,7 @@ int main()
                     printf("Pid PPPD:%d\n",pid);
                     if (pid == -1)
                     {
+                        //                        resol=0;
                         sleep(1);
                         system("pppd call gprs");
                         sleep(1);
@@ -776,7 +898,10 @@ int main()
                     else
                     {
                         printf("Pinging !!!\n");
-                        ping(3);
+                        if(ping_count<=3)
+                        {
+                            ping(3);
+                        }
                         ip_address("ppp0");
                     }
                 }
@@ -862,8 +987,6 @@ int main()
                 disable_wifi();
             }
         }
-        count++;
-        printf("\n\n Count =%d \n\n",count);
         sleep(1);
     }//Ever loop ending
     return 0;

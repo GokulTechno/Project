@@ -129,8 +129,11 @@ void gpio(int pin_no,char gpiovalue)
     FILE *fgpio;
 
     fgpio=fopen(start, "w");
-    fwrite(&gpiovalue,1,1,fgpio);
-    fclose(fgpio);
+    if(fgpio)
+    {
+        fwrite(&gpiovalue,1,1,fgpio);
+        fclose(fgpio);
+    }
 }
 /* 0 = Direction Out */
 /* 1 = Direction Out */
@@ -146,19 +149,25 @@ void gpio_process(int pin_no, int direction)
 
     FILE *egpio, *dgpio;
     egpio = fopen("/sys/class/gpio/export","w");
-    fprintf(egpio,"%d",pin_no);
-    fclose(egpio);
+    if(egpio)
+    {
+        fprintf(egpio,"%d",pin_no);
+        fclose(egpio);
+    }
 
     dgpio = fopen(start,"w");
-    if(direction==0)
+    if(dgpio)
     {
-        fprintf(dgpio,"%s","out");
+        if(direction==0)
+        {
+            fprintf(dgpio,"%s","out");
+        }
+        else if(direction==1)
+        {
+            fprintf(dgpio,"%s","in");
+        }
+        fclose(dgpio);
     }
-    else if(direction==1)
-    {
-        fprintf(dgpio,"%s","in");
-    }
-    fclose(dgpio);
 }
 
 int main(int argc, char *argv[]) {
@@ -405,7 +414,7 @@ magnetic=0;
                     if(rfid==0)
                     {
                         gpio(rfid_power,'1');
-//                        gpio(rfid_io_enable,'1');
+                        //                        gpio(rfid_io_enable,'1');
                         rfid=1;
                     }
                 }
@@ -414,7 +423,7 @@ magnetic=0;
                     if(rfid!=0)
                     {
                         gpio(rfid_power,'0');
-//                        gpio(rfid_io_enable,'0');
+                        //                        gpio(rfid_io_enable,'0');
                         rfid=0;
                     }
                 }

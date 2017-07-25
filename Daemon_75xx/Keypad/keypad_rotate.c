@@ -19,7 +19,7 @@
 #endif
 
 FILE *bfile, *sfile, *shutfile;
-FILE *bl;
+FILE *bl, *vmf;
 
 char task_bar_status[1];
 pthread_t tid[2];
@@ -29,16 +29,34 @@ volatile sig_atomic_t thread_stat = 0;
 
 void standby(int value)
 {
-    system("/opt/daemon_files/pkill start");
+    //    switch(value)
+    //    {
+    //    case 0:
+    //        system("/opt/daemon_files/standby.sh start");
+    //        break;
+    //    case 1:
+    //        system("/opt/daemon_files/standby.sh stop");
+    //        break;
+    //    }
 }
 
 void handle_alarm( int sig )
 {
     printf("Alarm Called\n");
-    //    standby(0);
+    standby(0);
     bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-    fprintf(bl,"500");
-    fclose(bl);
+    if(bl)
+    {
+        fprintf(bl,"500");
+        fclose(bl);
+    }
+
+    vmf = fopen("/proc/sys/vm/drop_caches","w");
+    if(vmf)
+    {
+        fprintf(vmf,"%d",3);
+        fclose(vmf);
+    }
     backlight_status=0;
 }
 
@@ -67,14 +85,20 @@ void* doSomeThing(void *arg)
                 {
                     int bdata;
                     bfile = fopen("/usr/share/status/backlight_read_time","r");
-                    fscanf(bfile,"%d",&bdata);
-                    fclose(bfile);
+                    if(bfile)
+                    {
+                        fscanf(bfile,"%d",&bdata);
+                        fclose(bfile);
+                    }
                     //system("sh /usr/share/scripts/backlight 4");
                     bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                    fprintf(bl,"500");
-                    fclose(bl);
+                    if(bl)
+                    {
+                        fprintf(bl,"500");
+                        fclose(bl);
+                    }
                     //system("sh /opt/daemon_files/standby.sh stop");
-                    //                    standby(1);
+                    standby(1);
                     alarm(0);
                     alarm(bdata);
                 }
@@ -103,7 +127,7 @@ pid_t proc_find(const char* name)
 
     while((ent = readdir(dir)) != NULL) {
         /* if endptr is not a null character, the directory is not
-         * entirely numeric, so ignore it */
+                 * entirely numeric, so ignore it */
         long lpid = strtol(ent->d_name, &endptr, 10);
         if (*endptr != '\0') {
             continue;
@@ -187,15 +211,21 @@ int main(void)
 
     int bdata;
     bfile = fopen("/usr/share/status/backlight_read_time","r");
-    fscanf(bfile,"%d",&bdata);
-    fclose(bfile);
+    if(bfile)
+    {
+        fscanf(bfile,"%d",&bdata);
+        fclose(bfile);
+    }
     alarm(0);
     alarm(bdata);
     a_stat=1;
 
     keymode = fopen("/usr/share/status/KEYPAD_mode","w");
-    fprintf(keymode,"%c",'0');
-    fclose(keymode);
+    if(keymode)
+    {
+        fprintf(keymode,"%c",'0');
+        fclose(keymode);
+    }
 
     fd = open(dev, O_RDONLY);
     if (fd == -1) {
@@ -205,8 +235,11 @@ int main(void)
     FILE *key_config;
     int kdata;
     key_config = fopen("/usr/share/status/KeyConfig","r");
-    fscanf(key_config,"%d",&kdata);
-    fclose(key_config);
+    if(key_config)
+    {
+        fscanf(key_config,"%d",&kdata);
+        fclose(key_config);
+    }
     if(kdata==2)
     {
         printf("2.8 Display\n");
@@ -235,8 +268,11 @@ int main(void)
 
             int bdata;
             bfile = fopen("/usr/share/status/backlight_read_time","r");
-            fscanf(bfile,"%d",&bdata);
-            fclose(bfile);
+            if(bfile)
+            {
+                fscanf(bfile,"%d",&bdata);
+                fclose(bfile);
+            }
 
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
@@ -245,11 +281,14 @@ int main(void)
                 //system("sh /usr/share/scripts/backlight 4");
 
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                fprintf(bl,"90000");
-                fclose(bl);
+                if(bl)
+                {
+                    fprintf(bl,"90000");
+                    fclose(bl);
+                }
                 backlight_status=1;
 
-                //                standby(1);
+                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
@@ -288,6 +327,7 @@ int main(void)
             }
             *s++ = task_bar_status[0];
             *s = '\0';
+            usleep(50000);
         }
     }
     else if(kdata==3)
@@ -328,8 +368,11 @@ int main(void)
 
             int bdata;
             bfile = fopen("/usr/share/status/backlight_read_time","r");
-            fscanf(bfile,"%d",&bdata);
-            fclose(bfile);
+            if(bfile)
+            {
+                fscanf(bfile,"%d",&bdata);
+                fclose(bfile);
+            }
 
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
@@ -337,9 +380,12 @@ int main(void)
                 alarm(bdata);
                 /*Backlight Set*/
                 bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                fprintf(bl,"90000");
-                fclose(bl);
-                //                standby(1);
+                if(bl)
+                {
+                    fprintf(bl,"90000");
+                    fclose(bl);
+                }
+                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==56 && (int)ev.value==1)
                 {
@@ -373,6 +419,7 @@ int main(void)
             }
             *s++ = task_bar_status[0];
             *s = '\0';
+            usleep(50000);
         }
     }
     fflush(stdout);

@@ -14,7 +14,6 @@
 
 #define SHMSZ     27
 
-
 char buff[20];
 char bat_value[5];
 char charger_status1[2];
@@ -141,8 +140,11 @@ int main() {
         task_bar_status[10]='!';
 
         fp_tower = fopen("/opt/daemon_files/tower_value", "r");
-        fread(tower, 1, 2, fp_tower);
-        fclose(fp_tower);
+        if(fp_tower)
+        {
+            fread(tower, 1, 2, fp_tower);
+            fclose(fp_tower);
+        }
 
         //        printf("Char-1: %c\n",tower[0]);
         //        printf("Char-2: %c\n",tower[1]);
@@ -162,8 +164,11 @@ int main() {
         }
 
         fp_gps = fopen("/opt/sdk/resources/gps_file","r");
-        fread(gpssat,3,1,fp_gps);
-        fclose(fp_gps);
+        if(fp_gps)
+        {
+            fread(gpssat,3,1,fp_gps);
+            fclose(fp_gps);
+        }
         if(gpssat[0]=='G')
         {
             task_bar_status[4]=0x31;
@@ -184,8 +189,11 @@ int main() {
         }
 
         fp_nw = fopen("/opt/daemon_files/ping_status", "r");
-        fread(nw_status, 1, 1, fp_nw);
-        fclose(fp_nw);
+        if(fp_nw)
+        {
+            fread(nw_status, 1, 1, fp_nw);
+            fclose(fp_nw);
+        }
 
         if(nw_status[0]== 'E' ||nw_status[0]== 'e' ||nw_status[0]== 'W' || nw_status[0]== 'w' || nw_status[0]== 'G' || nw_status[0]== 'g')
         {
@@ -197,19 +205,29 @@ int main() {
         }
 
         fp_batv = fopen("/sys/class/power_supply/NUC970Bat/voltage_now","r");
-        fscanf(fp_batv,"%s",batvolt);
-        fclose(fp_batv);
+        if(fp_batv)
+        {
+            fscanf(fp_batv,"%s",batvolt);
+            fclose(fp_batv);
+        }
 
         int vol;
         vol=atoi(batvolt);
 
         fbatv = fopen("/opt/daemon_files/bat_level","w");
-        fwrite(batvolt,1,sizeof(batvolt),fbatv);
-        fclose(fbatv);
+        if(fbatv)
+        {
+            fwrite(batvolt,1,sizeof(batvolt),fbatv);
+            fclose(fbatv);
+        }
 
         fp_bat = fopen("/sys/class/power_supply/NUC970Bat/present", "r");
-        fscanf(fp_bat,"%d",&bat_Temp);
-        fclose(fp_bat);
+        if(fp_bat)
+        {
+            fscanf(fp_bat,"%d",&bat_Temp);
+            fclose(fp_bat);
+        }
+
         printf("Battery Tmp:%d\n",bat_Temp);
 
         if(bat_Temp<100 && bat_Temp>=94)
@@ -239,7 +257,7 @@ int main() {
         }
         else if(bat_Temp==76)
         {
-            task_bar_status[9]=0x30;
+            task_bar_status[9]=0x38;
             low_bat_count=0;
         }
         else if(bat_Temp<=75)
@@ -253,8 +271,11 @@ int main() {
         }
 
         fp_status1 = fopen("/sys/class/gpio/gpio110/value", "r");
-        fread(charger_status1, 1, 1, fp_status1);
-        fclose(fp_status1);
+        if(fp_status1)
+        {
+            fread(charger_status1, 1, 1, fp_status1);
+            fclose(fp_status1);
+        }
 
         if(vol>=4885)
         {
