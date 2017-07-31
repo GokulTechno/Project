@@ -25,22 +25,7 @@
 
 #include "motor.h" 
 #include "final_font.h"
-//#include "envy_code_12.h"
-//#include "test_reg_12.h"
-//#include "cousine12_bold.h"
-//#include "DejaVuSansMono_bold14.h"
-//#include "envy_code_italic_12.h"
-//#include "DroidSans_R_10_10_15.h"
-//#include "DroidSans_B_10_10_15.h"
-//#include "DroidSansMono_R_12_14_18.h"
-//#include "DroidSansMono_R_16_14_24.h"
-//#include "DroidSansMono_R_14_12_22.h"
-//#include "LuxiMono_R_14_12_22.h"
-//#include "CourierNew_R_16_14_22.h"
-//#include "BitstreamVeraSansMono_R_14_12_22.h"
-//#include "Lekton_R_16_12_22.h"
-//#include "Lekton_R_18_16_26.h"
-//#include "BitstreamVeraSansMono_R_18_16_26.h"
+
 //-------macros defined -------
 
 #define SPI_BUFF_SIZE	128
@@ -163,7 +148,8 @@ if(rotate_stat==1)
 {
 		/*********Rotation Function Starts**********/
 			
-			gpio_direction_output(137,1);	
+//			gpio_direction_output(137,1);
+//			udelay(500);	
 			for(loop=0;loop<rotate_loop;loop++)
 			{	
 			 if(rotate_pulse_count==1)
@@ -177,99 +163,46 @@ if(rotate_stat==1)
 				rotate_pulse_count=1;
 			 }
 			}
-			gpio_direction_output(137,0);
+//			gpio_direction_output(137,0);
 			
-			gpio_direction_output(134,0);
-			gpio_direction_output(135,0);
-			gpio_direction_output(136,0);
+//			gpio_direction_output(134,0);
+//			gpio_direction_output(135,0);
+//			gpio_direction_output(136,0);
 			
 		/*********Rotation Function Ends**********/
 }
 }
 
-//-----------------------------------PAPER sensing--------------------------------------------------
-
-/*
-void paper_sensing(void)
-{
-	for(i=0;i<128;i++)
-	{
-	        buf[i] = 0;
-	}
-
-	f1 = filp_open("/sys/class/gpio/gpio162/value", O_RDONLY, 0);
-    new = get_fs();
-    set_fs(get_ds());
-    f1->f_op->read(f1, buf, 128, &f1->f_pos);
-    set_fs(new);
-	filp_close(f1,NULL);
-
-	
-
-	//printk("paper presence = %c\n",buf[0]);
-
-
-	if(buf[0]=='0')
-	{
-		//printk("No papar\n");
-		f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-		fs = get_fs();
-	    set_fs(get_ds());  
-		f2->f_op->write(f2, "0", 1, &f2->f_pos);
-		set_fs(fs);	
-		filp_close(f2,NULL);
-	}
-	else if(buf[0]=='1')
-	{
-		//printk("Paper Found\n");
-		f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-		fs = get_fs();
-	    set_fs(get_ds());  
-		f2->f_op->write(f2, "1", 1, &f2->f_pos);
-		set_fs(fs);	
-		filp_close(f2,NULL);
-	}
-
-}
-*/
 //-------------------------------The program starts from here------------------------------------------
 
 static void printer_prepare_spi_message(void)
 {
+
+gpio_direction_output(137,1);
+udelay(500);
+
 /***************Rotate Status Check***************/
 	for(i=0;i<128;i++)
 	{
 	        buf[i] = 0;
 	}
-	f1 = filp_open("/sys/class/gpio/gpio162/value", O_RDONLY, 0);
+    f1 = filp_open("/sys/class/gpio/gpio162/value", O_RDONLY, 0);
     new = get_fs();
     set_fs(get_ds());
     f1->f_op->read(f1, buf, 128, &f1->f_pos);
     set_fs(new);
-	filp_close(f1,NULL);
-
-	//printk("paper presence = %c\n",buf[0]);
-	if(buf[0]=='1')
-	{
+    filp_close(f1,NULL);
+    
+    switch(buf[0])
+    {
+	case '1':
 		rotate_stat=1;
-		//printk("Paper Found\n");
-		f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-		fs = get_fs();
-     	    	set_fs(get_ds());  
-		f2->f_op->write(f2, "1", 1, &f2->f_pos);
-		set_fs(fs);	
-		filp_close(f2,NULL);
-	}
-	else if(buf[0]=='0')
-	{
+	break;
+	case '2':
 		rotate_stat=0;
-		f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-		fs = get_fs();
-		set_fs(get_ds());  
-		f2->f_op->write(f2, "0", 1, &f2->f_pos);
-		set_fs(fs);	
-		filp_close(f2,NULL);
-	}
+	break;
+    }
+
 /***************Rotate Status Check***************/
 	data_read[48]=0,data_read[49]=1,data_read[50]=2,data_read[51]=3,data_read[52]=4,data_read[53]=5,data_read[54]=6,data_read[55]=7,data_read[56]=8,data_read[57]=9,data_read[65]=10,data_read[66]=11,data_read[67]=12,data_read[68]=13,data_read[69]=14,data_read[70]=15;
 
@@ -1424,6 +1357,11 @@ printer_init_error:
 	}
 	
 	return error;
+	gpio_direction_output(137,0);
+
+        gpio_direction_output(134,0);
+        gpio_direction_output(135,0);
+        gpio_direction_output(136,0);
 }
 
 //-----------------

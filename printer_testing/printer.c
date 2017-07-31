@@ -19,7 +19,8 @@
 #include <linux/cdev.h>
 #include <linux/spi/spi.h>
 #include <asm/uaccess.h>
-#include<linux/init.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
 
 //-------Header files included------
 
@@ -40,6 +41,7 @@
 int Noofbytes(void);
 void rotate(int);
 int rotate_stat;
+int bat_present=0;
 
 //------Driver name-----------------------
 const char this_driver_name[] = "printer";
@@ -127,6 +129,13 @@ int Noofbytes()
     NoOfBytes=Temp;
 
     return NoOfBytes;
+}
+
+int strtoint(char *data)
+{
+    int bat;
+    bat = ((data[0]-0x30)*10)+(data[1]-0x30);
+    return bat;
 
 }
 
@@ -134,20 +143,34 @@ int Noofbytes()
 
 void rotate(int rotate_loop)
 {
-    if(rotate_stat==1)
+    if(buf[0]=='1')
     {
         for(loop=0;loop<rotate_loop;loop++)
         {
 
             if(rotate_pulse_count==1)
             {
-                even_rotate();
+                if(bat_present<84)
+                {
+                    lp_even_rotate();
+                }
+                else
+                {
+                    even_rotate();
+                }
                 rotate_pulse_count=2;
             }
 
             else if(rotate_pulse_count==2)
             {
-                odd_rotate();
+                if(bat_present<84)
+                {
+                    lp_odd_rotate();
+                }
+                else
+                {
+                    odd_rotate();
+                }
                 rotate_pulse_count=1;
             }
 
@@ -159,45 +182,30 @@ void rotate(int rotate_loop)
 
 static void printer_prepare_spi_message(void)
 {
+
+    gpio_direction_output(137,1);
     /***************Rotate Status Check***************/
-    for(i=0;i<128;i++)
-    {
-        buf[i] = 0;
-    }
+
+    memset(buf,0x00,sizeof(buf));
 
     f1 = filp_open("/sys/class/gpio/gpio162/value", O_RDONLY, 0);
     new = get_fs();
     set_fs(get_ds());
-    f1->f_op->read(f1, buf, 128, &f1->f_pos);
+    f1->f_op->read(f1, buf, 1, &f1->f_pos);
     set_fs(new);
     filp_close(f1,NULL);
 
-    //printk("paper presence = %c\n",buf[0]);
-    if(buf[0]=='1')
-    {
-        rotate_stat=1;
-        //printk("Paper Found\n");
+    f_LB = filp_open("/sys/class/power_supply/NUC970Bat/present", O_RDONLY,0);
+    new = get_fs();
+    set_fs(get_ds());
+    f_LB->f_op->read(f_LB, LB_buf1, 2, &f_LB->f_pos);
+    set_fs(new);
+    filp_close(f_LB,NULL);
 
-        f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-        fs = get_fs();
-        set_fs(get_ds());
-        f2->f_op->write(f2, "1", 1, &f2->f_pos);
-        set_fs(fs);
-        filp_close(f2,NULL);
+    bat_present = strtoint(LB_buf1);
 
-    }
-    else if(buf[0]=='0')
-    {
-        rotate_stat=0;
+//    printk("Battery Percentage: %d\n", bat_present);
 
-        f2 = filp_open("/usr/share/status/PRINTER_status", O_WRONLY, 0644);
-        fs = get_fs();
-        set_fs(get_ds());
-        f2->f_op->write(f2, "0", 1, &f2->f_pos);
-        set_fs(fs);
-        filp_close(f2,NULL);
-
-    }
     /***************Rotate Status Check***************/
     data_read[48]=0,data_read[49]=1,data_read[50]=2,data_read[51]=3,data_read[52]=4,data_read[53]=5,data_read[54]=6,data_read[55]=7,data_read[56]=8,data_read[57]=9,data_read[65]=10,data_read[66]=11,data_read[67]=12,data_read[68]=13,data_read[69]=14,data_read[70]=15;
 
@@ -205,10 +213,7 @@ static void printer_prepare_spi_message(void)
     spi_message_init(&printer_ctl.msg);
     printer_dev.spi_device->bits_per_word=8;
 
-    for(i=0;i<48;i++)
-    {
-        tmp[i]=0;
-    }
+    memset(tmp,0x00,48);
 
     //	printk(KERN_ALERT "length is ...........   %d  \n",length);
 
@@ -242,14 +247,13 @@ static void printer_prepare_spi_message(void)
 
             Noofbytes();
             //			printk("No of Bytes = %d\n",Temp);
-            memset(tmp,0,sizeof(tmp));
+            memset(tmp,0x00,sizeof(tmp));
             spi_write(printer_dev.spi_device, addr, 48);
 
             for(i=0;i<Temp;i++)
             {
                 empty_rotate();
             }
-
             Temp=0;
             break;
 
@@ -392,6 +396,7 @@ static void printer_prepare_spi_message(void)
                     // Tiny font - starts
                     if(size==1)
                     {
+                        memset(addr,0x00,sizeof(addr));
                         for(height=0;height<13;height++)
                         {
                             for(width=1;width<=50 && width<(data_size-3);width++)
@@ -525,8 +530,8 @@ static void printer_prepare_spi_message(void)
 
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(2);
-			    memset(addr,0,sizeof(addr));
-                            memset(tmp,0,sizeof(tmp));
+                            memset(addr,0x00,sizeof(addr));
+                            memset(tmp,0x00,sizeof(tmp));
 
                         }  // height - ends
                     }  // Tiny -ends
@@ -534,7 +539,7 @@ static void printer_prepare_spi_message(void)
                     // Small font - starts
                     if(size==2)
                     {
-                        memset(addr,0,sizeof(addr));
+                        memset(addr,0x00,sizeof(addr));
                         for(height=0;height<17;height++)
                         {
                             for(width=1;width<=41 && width<(data_size-3);width++)
@@ -706,8 +711,8 @@ static void printer_prepare_spi_message(void)
 
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(2);
-			    memset(addr,0,sizeof(addr));
-                            memset(tmp,0,sizeof(tmp));
+                            memset(addr,0x00,sizeof(addr));
+                            memset(tmp,0x00,sizeof(tmp));
 
                         }  // height - ends
                     }  // small -ends
@@ -718,6 +723,7 @@ static void printer_prepare_spi_message(void)
                     // Medium -starts
                     if(size==3)
                     {
+                        memset(addr,0x00,sizeof(addr));
                         for(height=0;height<21;height++)
                         {
                             for(width=1;width<=32 && width<(data_size-3);width++)
@@ -894,8 +900,8 @@ static void printer_prepare_spi_message(void)
 
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(3);
-			    memset(addr,0,sizeof(addr));
-                            memset(tmp,0,sizeof(tmp));
+                            memset(addr,0x00,sizeof(addr));
+                            memset(tmp,0x00,sizeof(tmp));
                         }  // height - ends
                     }  // medium -ends
 
@@ -903,6 +909,7 @@ static void printer_prepare_spi_message(void)
                     // Large - starts
                     if(size==4)
                     {
+                        memset(addr,0x00,sizeof(addr));
                         for(height=0;height<26;height++)
                         {
                             for(width=1;width<=31 && width<(data_size-3);width++)
@@ -1157,15 +1164,15 @@ static void printer_prepare_spi_message(void)
                             }
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(3);
-			    memset(addr,0,sizeof(addr));
+                            memset(addr,0,sizeof(addr));
                             memset(tmp,0,sizeof(tmp));
                         }  // height - ends
                     }  // Large -ends
 
                     spi_write(printer_dev.spi_device, addr, 48);
                     rotate(2);
-		    memset(addr,0,sizeof(addr));
-                    memset(tmp,0,sizeof(tmp));
+                    memset(addr,0x00,sizeof(addr));
+                    memset(tmp,0x00,sizeof(tmp));
                 }
             }
 
@@ -1188,15 +1195,9 @@ static void printer_prepare_spi_message(void)
             Noofbytes();
             //printk("No of Bytes = %d\n",Temp);
 
-            for(i=0;i<48;i++)
-            {
-                tmp[i]=0;
-            }
-
-            for(i=0;i<1000000;i++)
-            {
-                buf1[i]=0;
-            }
+            memset(addr,0x00,48);
+            memset(tmp,0x00,48);
+            memset(buf1,0x00,1000000);
 
             f = filp_open("/usr/share/status/PRINTER_image", O_RDONLY, 0);
 
@@ -1208,8 +1209,8 @@ static void printer_prepare_spi_message(void)
             {
                 fs = get_fs();
                 set_fs(get_ds());
-                //f->f_op->read(f, buf1, 1000000, &f->f_pos);
-              	vfs_read(f, buf1, 1000000, &f->f_pos);
+                f->f_op->read(f, buf1, 1000000, &f->f_pos);
+                //                vfs_read(f, buf1, 1000000, &f->f_pos);
                 set_fs(fs);
                 value=buf1;
                 filp_close(f, NULL);
@@ -1258,12 +1259,12 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-		memset(addr,0,sizeof(addr));
-                memset(tmp,0,sizeof(tmp));
+                memset(addr,0x00,sizeof(addr));
+                memset(tmp,0x00,sizeof(tmp));
             }
-            memset(addr,0,sizeof(addr));
-            memset(tmp,0,sizeof(tmp));
-	    spi_write(printer_dev.spi_device, addr, 48);
+            memset(addr,0x00,sizeof(addr));
+            memset(tmp,0x00,sizeof(tmp));
+            spi_write(printer_dev.spi_device, addr, 48);
 
             rotate(5);
 
@@ -1286,15 +1287,9 @@ static void printer_prepare_spi_message(void)
             Noofbytes();
             //printk("No of Bytes = %d\n",Temp);
 
-            for(i=0;i<48;i++)
-            {
-                tmp[i]=0;
-            }
-
-            for(i=0;i<1000000;i++)
-            {
-                buf1[i]=0;
-            }
+            memset(addr,0x00,48);
+            memset(tmp,0x00,48);
+            memset(buf1,0x00,1000000);
 
             f = filp_open("/usr/share/status/PRINTER_header", O_RDONLY, 0);
 
@@ -1306,8 +1301,8 @@ static void printer_prepare_spi_message(void)
             {
                 fs = get_fs();
                 set_fs(get_ds());
-                //f->f_op->read(f, buf1, 1000000, &f->f_pos);
-                vfs_read(f, buf1, 1000000, &f->f_pos);
+                f->f_op->read(f, buf1, 1000000, &f->f_pos);
+                //                vfs_read(f, buf1, 1000000, &f->f_pos);
                 set_fs(fs);
                 value=buf1;
                 filp_close(f, NULL);
@@ -1356,12 +1351,12 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-		memset(addr,0,sizeof(addr));
-                memset(tmp,0,sizeof(tmp));
+                memset(addr,0x00,sizeof(addr));
+                memset(tmp,0x00,sizeof(tmp));
             }
-           memset(addr,0,sizeof(addr));
-           memset(tmp,0,sizeof(tmp)); 
-	   spi_write(printer_dev.spi_device, addr, 48);
+            memset(addr,0x00,sizeof(addr));
+            memset(tmp,0x00,sizeof(tmp));
+            spi_write(printer_dev.spi_device, addr, 48);
 
             rotate(5);
 
@@ -1384,15 +1379,9 @@ static void printer_prepare_spi_message(void)
             Noofbytes();
             //printk("No of Bytes = %d\n",Temp);
 
-            for(i=0;i<48;i++)
-            {
-                tmp[i]=0;
-            }
-
-            for(i=0;i<1000000;i++)
-            {
-                buf1[i]=0;
-            }
+            memset(addr,0x00,48);
+            memset(tmp,0x00,48);
+            memset(buf1,0x00,1000000);
 
             f = filp_open("/usr/share/status/PRINTER_footer", O_RDONLY, 0);
 
@@ -1404,8 +1393,8 @@ static void printer_prepare_spi_message(void)
             {
                 fs = get_fs();
                 set_fs(get_ds());
-                //f->f_op->read(f, buf1, 1000000, &f->f_pos);
-                vfs_read(f, buf1, 1000000, &f->f_pos);
+                f->f_op->read(f, buf1, 1000000, &f->f_pos);
+                //                vfs_read(f, buf1, 1000000, &f->f_pos);
                 set_fs(fs);
                 value=buf1;
                 filp_close(f, NULL);
@@ -1454,12 +1443,12 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-		memset(addr,0,sizeof(addr));
-                memset(tmp,0,sizeof(tmp));
+                memset(addr,0x00,sizeof(addr));
+                memset(tmp,0x00,sizeof(tmp));
             }
-            memset(addr,0,sizeof(addr));
-            memset(tmp,0,sizeof(tmp));
-	    spi_write(printer_dev.spi_device, addr, 48);
+            memset(addr,0x00,sizeof(addr));
+            memset(tmp,0x00,sizeof(tmp));
+            spi_write(printer_dev.spi_device, addr, 48);
 
             rotate(5);
 
@@ -1468,11 +1457,16 @@ static void printer_prepare_spi_message(void)
 
             break;
         }
+        gpio_direction_output(137,0);
+        gpio_direction_output(134,0);
+        gpio_direction_output(135,0);
+        gpio_direction_output(136,0);
     }
     memset(addr,0,sizeof(addr));
     memset(tmp,0,sizeof(tmp));
     memset(printer_ctl.tx_buff, 0, SPI_BUFF_SIZE);
     spi_message_add_tail(&printer_ctl.transfer, &printer_ctl.msg);
+    
 }
 
 
@@ -1860,8 +1854,8 @@ static int __init printer_init(void)
     gpio_export(136,true);
 
     gpio_direction_output(227,0); // ------------ SPI latch default---------
-    gpio_direction_output(226,1);// --------------logic power -----------
-    gpio_direction_output(137,0);// --------------Driver IC enable -----------
+    gpio_direction_output(226,1); // --------------logic power -----------
+    gpio_direction_output(137,0); // --------------Driver IC enable -----------
 
     return 0;
 
@@ -1889,9 +1883,6 @@ static void __exit printer_exit(void)    // exit function to free all the resour
     cdev_del(&printer_dev.cdev);
     unregister_chrdev_region(printer_dev.devt, 1);
 
-    gpio_direction_output(226,0);// --------------logic power -----------
-    gpio_direction_output(137,0);// --------------Driver IC enable -----------
-
     if (printer_ctl.tx_buff)
         kfree(printer_ctl.tx_buff);
 
@@ -1900,13 +1891,15 @@ static void __exit printer_exit(void)    // exit function to free all the resour
 
     if (printer_dev.user_buff)
         kfree(printer_dev.user_buff);
+
+    gpio_direction_output(226,0);// --------------logic power -----------
+    gpio_direction_output(137,0);// --------------Driver IC enable -----------
 }
 //----------------------------------
 
 
 module_init(printer_init);  // Driver always starts execution from here ( insmod ./printer.ko)
 module_exit(printer_exit);  // Driver exectues this function while exit  (rmmod  printer.ko)           
-
 
 MODULE_AUTHOR("Elango & SriNavamani");
 MODULE_DESCRIPTION("printer module - SPI driver");

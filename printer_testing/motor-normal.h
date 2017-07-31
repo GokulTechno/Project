@@ -194,23 +194,23 @@ void strobe_150(void)
 {
 
 gpio_direction_output(134,1);
-gpio_direction_output(135,0);
+gpio_direction_output(135,1);
 gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,1);
 gpio_direction_output(135,1);
-gpio_direction_output(136,0);
+gpio_direction_output(136,1);
+udelay(60);
+//udelay(50);
+gpio_direction_output(134,1);
+gpio_direction_output(135,1);
+gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,0);
-gpio_direction_output(135,1);
-gpio_direction_output(136,1);
-udelay(60);
-//udelay(50);
-gpio_direction_output(134,1);
 gpio_direction_output(135,0);
-gpio_direction_output(136,1);
+gpio_direction_output(136,0);
 
 }
 
@@ -219,23 +219,23 @@ void strobe_200(void)
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,1);
-gpio_direction_output(135,0);
+gpio_direction_output(135,1);
 gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,1);
 gpio_direction_output(135,1);
-gpio_direction_output(136,0);
+gpio_direction_output(136,1);
+udelay(60);
+//udelay(50);
+gpio_direction_output(134,1);
+gpio_direction_output(135,1);
+gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,0);
-gpio_direction_output(135,1);
-gpio_direction_output(136,1);
-udelay(60);
-//udelay(50);
-gpio_direction_output(134,1);
 gpio_direction_output(135,0);
-gpio_direction_output(136,1);
+gpio_direction_output(136,0);
 
 }
 
@@ -244,23 +244,23 @@ void strobe_250(void)
 udelay(100);
 //udelay(100);
 gpio_direction_output(134,1);
-gpio_direction_output(135,0);
+gpio_direction_output(135,1);
 gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,1);
 gpio_direction_output(135,1);
-gpio_direction_output(136,0);
+gpio_direction_output(136,1);
+udelay(60);
+//udelay(50);
+gpio_direction_output(134,1);
+gpio_direction_output(135,1);
+gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
 gpio_direction_output(134,0);
-gpio_direction_output(135,1);
-gpio_direction_output(136,1);
-udelay(60);
-//udelay(50);
-gpio_direction_output(134,1);
 gpio_direction_output(135,0);
-gpio_direction_output(136,1);
+gpio_direction_output(136,0);
 }
 
 void strobe_300(void)
@@ -268,28 +268,29 @@ void strobe_300(void)
 udelay(150);
 //udelay(150);
 gpio_direction_output(134,1);
-gpio_direction_output(135,0);
+gpio_direction_output(135,1);
 gpio_direction_output(136,1);
 udelay(50);
 //udelay(50);
 gpio_direction_output(134,1);
 gpio_direction_output(135,1);
-gpio_direction_output(136,0);
+gpio_direction_output(136,1);
 udelay(50);
 //udelay(50);
-gpio_direction_output(134,0);
+gpio_direction_output(134,1);
 gpio_direction_output(135,1);
 gpio_direction_output(136,1);
 udelay(60);
 //udelay(50);
-gpio_direction_output(134,1);
+gpio_direction_output(134,0);
 gpio_direction_output(135,0);
-gpio_direction_output(136,1);
+gpio_direction_output(136,0);
 
 }
 
 static void empty_rotate(void)
 {
+    udelay(250);
 
     //-------------- 1 ----------------------------
     gpio_direction_output(133,1);
@@ -450,4 +451,6 @@ static void empty_rotate(void)
     gpio_direction_output(130,1);
 
     udelay(150);
+
+
 }
