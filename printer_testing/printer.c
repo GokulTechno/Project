@@ -186,7 +186,7 @@ static void printer_prepare_spi_message(void)
     gpio_direction_output(137,1);
     /***************Rotate Status Check***************/
 
-    memset(buf,0x00,sizeof(buf));
+    memset(buf,0x00,128);
 
     f1 = filp_open("/sys/class/gpio/gpio162/value", O_RDONLY, 0);
     new = get_fs();
@@ -247,8 +247,6 @@ static void printer_prepare_spi_message(void)
 
             Noofbytes();
             //			printk("No of Bytes = %d\n",Temp);
-            memset(tmp,0x00,sizeof(tmp));
-            spi_write(printer_dev.spi_device, addr, 48);
 
             for(i=0;i<Temp;i++)
             {
@@ -528,10 +526,10 @@ static void printer_prepare_spi_message(void)
                             }
 
 
+//                            memset(tmp,0x00,sizeof(tmp));
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(2);
-                            memset(addr,0x00,sizeof(addr));
-                            memset(tmp,0x00,sizeof(tmp));
+//                            memset(addr,0x00,sizeof(addr));
 
                         }  // height - ends
                     }  // Tiny -ends
@@ -708,11 +706,10 @@ static void printer_prepare_spi_message(void)
 
                             }
 
-
+//                            memset(tmp,0x00,sizeof(tmp));
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(2);
-                            memset(addr,0x00,sizeof(addr));
-                            memset(tmp,0x00,sizeof(tmp));
+//                            memset(addr,0x00,sizeof(addr));
 
                         }  // height - ends
                     }  // small -ends
@@ -898,10 +895,10 @@ static void printer_prepare_spi_message(void)
                             }
 
 
+//                            memset(tmp,0x00,sizeof(tmp));
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(3);
-                            memset(addr,0x00,sizeof(addr));
-                            memset(tmp,0x00,sizeof(tmp));
+//                            memset(addr,0x00,sizeof(addr));
                         }  // height - ends
                     }  // medium -ends
 
@@ -1164,15 +1161,15 @@ static void printer_prepare_spi_message(void)
                             }
                             spi_write(printer_dev.spi_device, addr, 48);
                             rotate(3);
-                            memset(addr,0,sizeof(addr));
-                            memset(tmp,0,sizeof(tmp));
+//                            memset(addr,0,sizeof(addr));
+//                            memset(tmp,0,sizeof(tmp));
                         }  // height - ends
                     }  // Large -ends
 
+                    memset(tmp,0x00,sizeof(tmp));
                     spi_write(printer_dev.spi_device, addr, 48);
                     rotate(2);
-                    memset(addr,0x00,sizeof(addr));
-                    memset(tmp,0x00,sizeof(tmp));
+//                    memset(addr,0x00,sizeof(addr));
                 }
             }
 
@@ -1259,10 +1256,10 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-                memset(addr,0x00,sizeof(addr));
-                memset(tmp,0x00,sizeof(tmp));
+//                memset(addr,0x00,sizeof(addr));
+//                memset(tmp,0x00,sizeof(tmp));
             }
-            memset(addr,0x00,sizeof(addr));
+//            memset(addr,0x00,sizeof(addr));
             memset(tmp,0x00,sizeof(tmp));
             spi_write(printer_dev.spi_device, addr, 48);
 
@@ -1351,10 +1348,10 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-                memset(addr,0x00,sizeof(addr));
-                memset(tmp,0x00,sizeof(tmp));
+//                memset(addr,0x00,sizeof(addr));
+//                memset(tmp,0x00,sizeof(tmp));
             }
-            memset(addr,0x00,sizeof(addr));
+//            memset(addr,0x00,sizeof(addr));
             memset(tmp,0x00,sizeof(tmp));
             spi_write(printer_dev.spi_device, addr, 48);
 
@@ -1443,10 +1440,10 @@ static void printer_prepare_spi_message(void)
                 }
                 spi_write(printer_dev.spi_device, addr, 48);
                 rotate(1);
-                memset(addr,0x00,sizeof(addr));
-                memset(tmp,0x00,sizeof(tmp));
+//                memset(addr,0x00,sizeof(addr));
+//                memset(tmp,0x00,sizeof(tmp));
             }
-            memset(addr,0x00,sizeof(addr));
+//            memset(addr,0x00,sizeof(addr));
             memset(tmp,0x00,sizeof(tmp));
             spi_write(printer_dev.spi_device, addr, 48);
 
@@ -1457,15 +1454,14 @@ static void printer_prepare_spi_message(void)
 
             break;
         }
-        gpio_direction_output(137,0);
-        gpio_direction_output(134,0);
-        gpio_direction_output(135,0);
-        gpio_direction_output(136,0);
     }
     memset(addr,0,sizeof(addr));
     memset(tmp,0,sizeof(tmp));
+
     memset(printer_ctl.tx_buff, 0, SPI_BUFF_SIZE);
     spi_message_add_tail(&printer_ctl.transfer, &printer_ctl.msg);
+
+    gpio_direction_output(137,0);
     
 }
 

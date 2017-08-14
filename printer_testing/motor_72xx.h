@@ -14,33 +14,33 @@ static void even_rotate(void)
 
 	
 	//-------------- 1 ----------------------------
-	gpio_direction_output(133,1);//1A
-	gpio_direction_output(132,0);//1B
+        gpio_direction_output(133,1);//1A
+        gpio_direction_output(132,0);//1B
 	gpio_direction_output(131,0);//2A
 	gpio_direction_output(130,0);//2B
 	
 	strobe_280();
 
 	//-------------- 2 ----------------------------
-	gpio_direction_output(133,1);
-	gpio_direction_output(132,0);
-	gpio_direction_output(131,0);
-	gpio_direction_output(130,1);
+        gpio_direction_output(133,1);
+        gpio_direction_output(132,0);
+        gpio_direction_output(131,0);
+        gpio_direction_output(130,1);
 
 	strobe_280();
 
 	//-------------- 3 ----------------------------
-	gpio_direction_output(133,0);
-	gpio_direction_output(132,0);
-	gpio_direction_output(131,0);
+        gpio_direction_output(133,0);
+        gpio_direction_output(132,0);
+        gpio_direction_output(131,0);
 	gpio_direction_output(130,1);
 
 	strobe_280();
 
 	//-------------- 4 ----------------------------
-	gpio_direction_output(133,0);
+        gpio_direction_output(133,0);
 	gpio_direction_output(132,0);
-	gpio_direction_output(131,1);
+        gpio_direction_output(131,1);
 	gpio_direction_output(130,1);
 
 	strobe_280();

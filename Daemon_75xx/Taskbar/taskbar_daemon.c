@@ -150,7 +150,7 @@ int main() {
         //        printf("Char-2: %c\n",tower[1]);
 
         a=atoi(tower);
-        printf("Tower Value: %d\n",a);
+        //        printf("Tower Value: %d\n",a);
 
         if(a>=0 && a<=9)
         {
@@ -174,11 +174,11 @@ int main() {
             task_bar_status[4]=0x31;
             pid_t gpid;
             gpid = proc_find("/opt/daemon_files/gpsd");
-            printf("GPS PID: %d", gpid);
+            //            printf("GPS PID: %d", gpid);
             if(gpid == -1)
             {
                 system("/opt/daemon_files/gpsd");
-                printf("Launching Gps Daemon\n");
+                //                printf("Launching Gps Daemon\n");
                 sleep(1);
             }
 
@@ -228,7 +228,7 @@ int main() {
             fclose(fp_bat);
         }
 
-        printf("Battery Tmp:%d\n",bat_Temp);
+        //        printf("Battery Tmp:%d\n",bat_Temp);
 
         if(bat_Temp<100 && bat_Temp>=94)
         {
@@ -263,7 +263,7 @@ int main() {
         else if(bat_Temp<=75)
         {
             low_bat_count++;
-            printf("Low Battery Count: %d\n",low_bat_count);
+            //            printf("Low Battery Count: %d\n",low_bat_count);
             if(low_bat_count>=10)
             {
                 task_bar_status[9]=0x37;  //Low Battery Notification
@@ -298,11 +298,13 @@ int main() {
             *s++ = task_bar_status[c];
         }
         *s = '\0';
-        for(i=0;i<11;i++)
-        {
-            printf("%c",task_bar_status[i]);
-        }
-        printf("\n");
+        shmdt(shm);
+        shmdt(s);
+        //        for(i=0;i<11;i++)
+        //        {
+        //            printf("%c",task_bar_status[i]);
+        //        }
+        //        printf("\n");
         sleep(1);
     }
 

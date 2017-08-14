@@ -223,11 +223,11 @@ int main(int argc, char *argv[]) {
     {
         while (*shm != '^')
             sleep(1);
-        printf("received.......\n");
+//        printf("received.......\n");
         int i=0;
         for (s = shm; *s != '\0'; s++)
         {
-            printf("%c\n",status_buff[i]);
+//            printf("%c\n",status_buff[i]);
             status_buff[i]=*s;
             i++;
         }
@@ -590,7 +590,7 @@ else
         gpio(usb_hub_enable,'1');
 }
 */
-            printf("testing-------------\n");
+//            printf("testing-------------\n");
             s = shm;
             for (c = 0; c <= 7; c++)
                 *s++ = SUCCESS[c];
@@ -606,7 +606,6 @@ else
                 *s++ = FAILURE[c];
             *s = '\0';
         }
-
     }
 
     closelog ();

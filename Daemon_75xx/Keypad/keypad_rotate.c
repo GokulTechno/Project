@@ -42,21 +42,10 @@ void standby(int value)
 
 void handle_alarm( int sig )
 {
-    printf("Alarm Called\n");
+    //    printf("Alarm Called\n");
     standby(0);
-    bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-    if(bl)
-    {
-        fprintf(bl,"500");
-        fclose(bl);
-    }
-
-    vmf = fopen("/proc/sys/vm/drop_caches","w");
-    if(vmf)
-    {
-        fprintf(vmf,"%d",3);
-        fclose(vmf);
-    }
+    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+    system("echo 3 > /proc/sys/vm/drop_caches");
     backlight_status=0;
 }
 
@@ -68,7 +57,7 @@ void* doSomeThing(void *arg)
 
     if(pthread_equal(id,tid[0]))
     {
-        printf("\n First thread processing\n");
+        //        printf("\n First thread processing\n");
         int fd;
         struct input_event ie;
 
@@ -79,8 +68,8 @@ void* doSomeThing(void *arg)
         else
         {
             while(read(fd, &ie, sizeof(struct input_event))) {
-                printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
-                       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
+                //                printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
+                //                       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
                 if(ie.code==330)
                 {
                     int bdata;
@@ -91,12 +80,7 @@ void* doSomeThing(void *arg)
                         fclose(bfile);
                     }
                     //system("sh /usr/share/scripts/backlight 4");
-                    bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                    if(bl)
-                    {
-                        fprintf(bl,"500");
-                        fclose(bl);
-                    }
+                    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
                     //system("sh /opt/daemon_files/standby.sh stop");
                     standby(1);
                     alarm(0);
@@ -163,9 +147,11 @@ static const char *const evval[3] = {
     "REPEATED"
 };
 
+char standbydata[1];
+
 int main(void)
 {
-    FILE *keymode;
+    FILE *keymode,*keysymbol;
     int shmid,CAPS=0;
     key_t key;
     char *shm, *s;
@@ -209,6 +195,8 @@ int main(void)
     *s++ = task_bar_status[0];
     *s = '\0';
 
+    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+
     int bdata;
     bfile = fopen("/usr/share/status/backlight_read_time","r");
     if(bfile)
@@ -216,16 +204,18 @@ int main(void)
         fscanf(bfile,"%d",&bdata);
         fclose(bfile);
     }
+
     alarm(0);
     alarm(bdata);
     a_stat=1;
 
-    keymode = fopen("/usr/share/status/KEYPAD_mode","w");
-    if(keymode)
-    {
-        fprintf(keymode,"%c",'0');
-        fclose(keymode);
-    }
+    //    int keymode_int;
+    //    keymode = fopen("/proc/keypad/KEYPAD_mode","r");
+    //    if(keymode)
+    //    {
+    //        fscanf(keymode,"%d",keymode_int);
+    //        fclose(keymode);
+    //    }
 
     fd = open(dev, O_RDONLY);
     if (fd == -1) {
@@ -242,14 +232,13 @@ int main(void)
     }
     if(kdata==2)
     {
-        printf("2.8 Display\n");
-        printf("Ev Code Recevied: %d\n", (int)ev.code);
         while (1) {
             if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
                 perror("shmat");
                 exit(1);
             }
             s = shm;
+
             //task_bar_status[0]='1'; //Small
             //task_bar_status[0]='2'; //Caps
             //task_bar_status[0]='3'; //nums
@@ -274,22 +263,35 @@ int main(void)
                 fclose(bfile);
             }
 
+            int sfile;
+
+            bfile = fopen("/opt/daemon_files/standby_status", "r");
+            if(bfile)
+            {
+                fscanf(bfile,"%d",&sfile);
+                fclose(bfile);
+            }
+
+
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
                 alarm(0);
                 alarm(bdata);
                 //system("sh /usr/share/scripts/backlight 4");
 
-                bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                if(bl)
+                if(backlight_status==0)
                 {
-                    fprintf(bl,"90000");
-                    fclose(bl);
+                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    backlight_status=1;
                 }
-                backlight_status=1;
+                if(sfile==1)
+                {
+                    backlight_status=0;
+                    system("echo 0 > /opt/daemon_files/standby_status");
+                }
 
                 standby(1);
-                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+                //                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
                     if(CAPS==0)
@@ -305,7 +307,7 @@ int main(void)
                 {
                     if(countk==0)
                     {
-                        printf("Small set\n");
+                        //                        printf("Small set\n");
                         if(CAPS==0)
                         {
                             task_bar_status[0]=0x31;
@@ -319,15 +321,21 @@ int main(void)
                     }
                     else if(countk==1)
                     {
-                        printf("Num set\n");
+                        //                        printf("Num set\n");
                         task_bar_status[0]=0x33;
                         countk=0;
                     }
                 }
+                if((int)ev.code==64 && (int)ev.value==1)
+                {
+                    system("echo 1 > /usr/share/status/KEYPAD_symbol");
+                }
             }
             *s++ = task_bar_status[0];
             *s = '\0';
-            usleep(50000);
+            shmdt(shm);
+            shmdt(s);
+            usleep(500);
         }
     }
     else if(kdata==3)
@@ -379,14 +387,13 @@ int main(void)
                 alarm(0);
                 alarm(bdata);
                 /*Backlight Set*/
-                bl=fopen("/sys/class/pwm/pwmchip0/pwm0/duty_cycle","w");
-                if(bl)
+                if(backlight_status==0)
                 {
-                    fprintf(bl,"90000");
-                    fclose(bl);
+                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    backlight_status=1;
                 }
                 standby(1);
-                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+                //                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==56 && (int)ev.value==1)
                 {
 
@@ -416,10 +423,15 @@ int main(void)
                     }
 
                 }
+                if((int)ev.code==64 && (int)ev.value==1)
+                {
+                    system("echo 1 > /usr/share/status/KEYPAD_symbol");
+                }
             }
             *s++ = task_bar_status[0];
             *s = '\0';
-            usleep(50000);
+            shmdt(shm);
+            shmdt(s);
         }
     }
     fflush(stdout);
