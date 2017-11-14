@@ -22,8 +22,9 @@ FILE *bfile, *sfile, *shutfile;
 FILE *bl, *vmf;
 
 char task_bar_status[1];
-pthread_t tid[2];
+pthread_t tid;
 int a_stat=0,shutdata=0,backlight_status=0;
+int n_stat,s_stat,b_stat;
 
 volatile sig_atomic_t thread_stat = 0;
 
@@ -44,7 +45,9 @@ void handle_alarm( int sig )
 {
     //    printf("Alarm Called\n");
     standby(0);
-    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+    //    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+    system("sh /usr/share/scripts/backlight 0");
+    system("echo 0 > /sys/class/gpio/gpio143/value");
     system("echo 3 > /proc/sys/vm/drop_caches");
     backlight_status=0;
 }
@@ -55,7 +58,7 @@ void* doSomeThing(void *arg)
 {
     pthread_t id = pthread_self();
 
-    if(pthread_equal(id,tid[0]))
+    if(pthread_equal(id,tid))
     {
         //        printf("\n First thread processing\n");
         int fd;
@@ -68,8 +71,7 @@ void* doSomeThing(void *arg)
         else
         {
             while(read(fd, &ie, sizeof(struct input_event))) {
-                //                printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
-                //                       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
+                printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
                 if(ie.code==330)
                 {
                     int bdata;
@@ -79,8 +81,9 @@ void* doSomeThing(void *arg)
                         fscanf(bfile,"%d",&bdata);
                         fclose(bfile);
                     }
-                    //system("sh /usr/share/scripts/backlight 4");
-                    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    system("sh /usr/share/scripts/backlight 4");
+                    system("echo 1 > /sys/class/gpio/gpio143/value");
+                    //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
                     //system("sh /opt/daemon_files/standby.sh stop");
                     standby(1);
                     alarm(0);
@@ -195,9 +198,12 @@ int main(void)
     *s++ = task_bar_status[0];
     *s = '\0';
 
-    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+    //    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+    system("sh /usr/share/scripts/backlight 4");
+    system("echo 1 > /sys/class/gpio/gpio143/value");
 
-    int bdata;
+    int bdata, kfile;
+
     bfile = fopen("/usr/share/status/backlight_read_time","r");
     if(bfile)
     {
@@ -230,6 +236,10 @@ int main(void)
         fscanf(key_config,"%d",&kdata);
         fclose(key_config);
     }
+
+    system("echo 0 > /proc/keypad/KEYPAD_mode");
+    system("echo 0 > /usr/share/status/KEYPAD_mode");
+
     if(kdata==2)
     {
         while (1) {
@@ -272,6 +282,12 @@ int main(void)
                 fclose(bfile);
             }
 
+            bfile = fopen("/usr/share/status/KEYPAD_mode","r");
+            if(bfile)
+            {
+                fscanf(bfile,"%d",&kfile);
+                fclose(bfile);
+            }
 
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
@@ -281,7 +297,9 @@ int main(void)
 
                 if(backlight_status==0)
                 {
-                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    system("sh /usr/share/scripts/backlight 4");
+                    system("echo 1 > /sys/class/gpio/gpio143/value");
                     backlight_status=1;
                 }
                 if(sfile==1)
@@ -291,7 +309,7 @@ int main(void)
                 }
 
                 standby(1);
-                //                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
                     if(CAPS==0)
@@ -303,27 +321,45 @@ int main(void)
                         CAPS=0;
                     }
                 }
-                if((int)ev.code==56 && (int)ev.value==1)
+                if((int)ev.code==56)
                 {
-                    if(countk==0)
+                    printf("Kfile: %d\n", kfile);
+                    if((int)ev.value==1 && kfile == 0)
                     {
-                        //                        printf("Small set\n");
-                        if(CAPS==0)
+                        if(countk==0)
                         {
-                            task_bar_status[0]=0x31;
-                            countk=1;
+                            //                        printf("Small set\n");
+                            if(CAPS==0)
+                            {
+                                task_bar_status[0]=0x31;
+                                printf("Small Alpha mode set rotate\n");
+                                countk=1;
+                            }
+                            else if(CAPS==1)
+                            {
+                                task_bar_status[0]=0x32;
+                                printf("Small Alpha mode set rotate\n");
+                                countk=1;
+                            }
                         }
-                        else if(CAPS==1)
+                        else if(countk==1)
                         {
-                            task_bar_status[0]=0x32;
-                            countk=1;
+                            //                        printf("Num set\n");
+                            task_bar_status[0]=0x33;
+                            printf("Numeric mode set rotate\n");
+                            countk=0;
                         }
                     }
-                    else if(countk==1)
+                    else if((int)ev.value==0 && kfile != 0)
                     {
-                        //                        printf("Num set\n");
-                        task_bar_status[0]=0x33;
-                        countk=0;
+                        if(kfile != 0)
+                        {
+                            system("echo 0 > /proc/keypad/KEYPAD_mode");
+                            system("echo 0 > /usr/share/status/KEYPAD_mode");
+                            task_bar_status[0]=0x33;
+                            countk=0;
+                            printf("Numeric mode set reset\n");
+                        }
                     }
                 }
                 if((int)ev.code==64 && (int)ev.value==1)
@@ -335,19 +371,18 @@ int main(void)
             *s = '\0';
             shmdt(shm);
             shmdt(s);
-            usleep(500);
         }
     }
     else if(kdata==3)
     {
         /*****************************Thread Creation*******************/
-        int err = pthread_create(&(tid[0]), NULL, &doSomeThing, NULL);
+        int err = pthread_create(&(tid), NULL, &doSomeThing, NULL);
         if (err != 0)
             printf("\ncan't create thread :[%s]", strerror(err));
         else
             printf("\n Thread created successfully\n");
 
-        pthread_join(tid[0]);
+        //        pthread_join(tid);
 
         /*****************************Thread Creation*******************/
         while (1) {
@@ -384,28 +419,50 @@ int main(void)
 
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
+                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
                 alarm(0);
                 alarm(bdata);
                 /*Backlight Set*/
                 if(backlight_status==0)
                 {
-                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    system("sh /usr/share/scripts/backlight 4");
+                    system("echo 1 > /sys/class/gpio/gpio143/value");
                     backlight_status=1;
                 }
                 standby(1);
-                //                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
-                if((int)ev.code==56 && (int)ev.value==1)
+                printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+                if((int)ev.code==56)
                 {
-
-                    if(num_stat[0]=='1')
+                    bfile = fopen("/usr/share/status/KEYPAD_mode","r");
+                    if(bfile)
                     {
-                        task_bar_status[0]=alp_stat[0];
-                        num_stat[0]='0';
+                        fscanf(bfile,"%d",&kfile);
+                        fclose(bfile);
                     }
-                    else if(num_stat[0]=='0')
+                    if((int)ev.value==1 && kfile == 0)
                     {
-                        task_bar_status[0]=0x33;
-                        num_stat[0]='1';
+                        if(num_stat[0]=='1')
+                        {
+                            task_bar_status[0]=alp_stat[0];
+                            num_stat[0]='0';
+                        }
+                        else if(num_stat[0]=='0')
+                        {
+                            task_bar_status[0]=0x33;
+                            num_stat[0]='1';
+                        }
+                    }
+                    else if((int)ev.value==0 && kfile != 0)
+                    {
+                        if(kfile != 0)
+                        {
+                            system("echo 0 > /proc/keypad/KEYPAD_mode");
+                            system("echo 0 > /usr/share/status/KEYPAD_mode");
+                            task_bar_status[0]=0x33;
+                            num_stat[0]='1';
+                            printf("Numeric mode set reset\n");
+                        }
                     }
 
                 }
@@ -421,7 +478,6 @@ int main(void)
                         task_bar_status[0]=0x31;
                         alp_stat[0]='1';
                     }
-
                 }
                 if((int)ev.code==64 && (int)ev.value==1)
                 {

@@ -275,7 +275,7 @@ hardcode_into_libs=yes
 sys_lib_search_path_spec="/opt/poky/1.4.4/sysroots/x86_64-pokysdk-linux/usr/lib/armv5te-poky-linux-gnueabi/gcc/arm-poky-linux-gnueabi/4.7.2 /opt/poky/1.4.4/sysroots/armv5te-poky-linux-gnueabi/lib /opt/poky/1.4.4/sysroots/armv5te-poky-linux-gnueabi/usr/lib/arm-poky-linux-gnueabi/4.7.2 /opt/poky/1.4.4/sysroots/armv5te-poky-linux-gnueabi/usr/lib "
 
 # Run-time system search path for libraries.
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/x86_64-linux-gnu/libfakeroot /lib/i386-linux-gnu /usr/lib/i386-linux-gnu /lib/i686-linux-gnu /usr/lib/i686-linux-gnu /usr/lib/i386-linux-gnu/mesa /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/mesa-egl /usr/lib/x86_64-linux-gnu/mesa /lib32 /usr/lib32 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/x86_64-linux-gnu/libfakeroot /lib/i386-linux-gnu /usr/lib/i386-linux-gnu /lib/i686-linux-gnu /usr/lib/i686-linux-gnu /usr/lib/i386-linux-gnu/mesa /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/mesa-egl /usr/lib/x86_64-linux-gnu/mesa /lib32 /usr/lib32 /libx32 /usr/libx32 /usr/local/lib/CBMRegDevice "
 
 # Whether dlopen is supported.
 dlopen_support=unknown

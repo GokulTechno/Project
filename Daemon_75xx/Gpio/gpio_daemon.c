@@ -33,6 +33,7 @@
 #define usb_hub_enable 143
 #define fingerprint_power 166
 #define five_volt 43
+#define sam_select 107
 
 struct ifreq ifr;
 struct sockaddr_in* addr = (struct sockaddr_in*)&ifr.ifr_addr;
@@ -223,11 +224,11 @@ int main(int argc, char *argv[]) {
     {
         while (*shm != '^')
             sleep(1);
-//        printf("received.......\n");
+        //        printf("received.......\n");
         int i=0;
         for (s = shm; *s != '\0'; s++)
         {
-//            printf("%c\n",status_buff[i]);
+            //            printf("%c\n",status_buff[i]);
             status_buff[i]=*s;
             i++;
         }
@@ -413,8 +414,11 @@ magnetic=0;
                 {
                     if(rfid==0)
                     {
+                        system("insmod /opt/daemon_files/pn5xx_i2c.ko");
+                        usleep(1000);
                         gpio(rfid_power,'1');
-                        //                        gpio(rfid_io_enable,'1');
+                        usleep(1000);
+                        gpio(rfid_io_enable,'1');
                         rfid=1;
                     }
                 }
@@ -422,8 +426,11 @@ magnetic=0;
                 {
                     if(rfid!=0)
                     {
+                        system("rmmod /opt/daemon_files/pn5xx_i2c.ko");
+                        usleep(1000);
                         gpio(rfid_power,'0');
-                        //                        gpio(rfid_io_enable,'0');
+                        usleep(1000);
+                        gpio(rfid_io_enable,'0');
                         rfid=0;
                     }
                 }
@@ -432,54 +439,54 @@ magnetic=0;
 
             // ---------------- SAM Card (^007S1!) --------------------
             /*
-else if(status_buff[2]=='0' && status_buff[3]=='7' && status_buff[4]=='S')
-{
-if(status_buff[5]=='1')
-{
-if(sam==0)
-{
-v5++;
-usb_hub++;
-sam=1;
-}
-}
-else
-{
-if(sam!=0)
-{
-v5--;
-usb_hub--;
-sam=0;
-}
-}
+            else if(status_buff[2]=='0' && status_buff[3]=='7' && status_buff[4]=='S')
+            {
+                if(status_buff[5]=='1')
+                {
+                    if(sam==0)
+                    {
+                        v5++;
+                        usb_hub++;
+                        sam=1;
+                    }
+                }
+                else
+                {
+                    if(sam!=0)
+                    {
+                        v5--;
+                        usb_hub--;
+                        sam=0;
+                    }
+                }
 
-}
+            }
 */
             // ---------------- SMARD Card (^008S1!) --------------------
-            /*
-else if(status_buff[2]=='0' && status_buff[3]=='8' && status_buff[4]=='S')
-{
+/*
+            else if(status_buff[2]=='0' && status_buff[3]=='8' && status_buff[4]=='S')
+            {
 
-if(status_buff[5]=='1')
-{
-if(smart==0)
-{
-v5++;
-usb_hub++;
-smart=1;
-}
-}
-else
-{
-if(smart!=0)
-{
-v5--;
-usb_hub--;
-smart=0;
-}
-}
+                if(status_buff[5]=='1')
+                {
+                    if(smart==0)
+                    {
+                        v5++;
+                        usb_hub++;
+                        smart=1;
+                    }
+                }
+                else
+                {
+                    if(smart!=0)
+                    {
+                        v5--;
+                        usb_hub--;
+                        smart=0;
+                    }
+                }
 
-}
+            }
 */
             // ---------------- GPS (^009G1!) --------------------
 
@@ -590,7 +597,7 @@ else
         gpio(usb_hub_enable,'1');
 }
 */
-//            printf("testing-------------\n");
+            //            printf("testing-------------\n");
             s = shm;
             for (c = 0; c <= 7; c++)
                 *s++ = SUCCESS[c];

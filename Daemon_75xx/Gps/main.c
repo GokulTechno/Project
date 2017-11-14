@@ -28,10 +28,12 @@ int main(void) {
     sleep(1);
     // Open
     gps_init();
+    usleep(100000);
     FILE *fp;
     loc_t data;
 
     while (1) {
+
         gps_location(&data);
 
         //printf("%lf %lf %f %d %ld\n", data.latitude, data.longitude, data.altitude, data.speed, data.course);
@@ -60,6 +62,7 @@ int main(void) {
         fclose(fp);
 
         sleep(1);
+
     }
 
     return EXIT_SUCCESS;

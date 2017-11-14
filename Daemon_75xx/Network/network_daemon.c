@@ -35,19 +35,20 @@
 #endif
 
 char read_buffer[30],gsmcsq[8]="AT+CSQ\r",gsmops[10]="AT+COPS?\r",gsmpin[10]="AT+CPIN?\r",status_buff[10],bstatus_buff[10],bstat_buff[2], ping_buff[10], *name,read_buff[10];
+char gps_on[14]="AT+QIFGCNT=0\n",gps_loc[15]="AT+QCELLLOC=1\n",gps_data[20];
 int status_sim=0;
 void ip_check(char *);
 FILE *fping,*fpingg,*fpingng,*fgprspwr,*fgprsen,*fstatus,*fsim,*fm66,*fwifien,*fcsq, *fbluestat, *fblue, *fgpsd;
 int fdt,count=0,level=0,pret;
-FILE *ftower_value, *fip_address, *fping_status;
+FILE *ftower_value, *fip_address, *fping_status, *fgpsdata;
 
 int wifi_up_down_status=0, enable_gprs_status=0, enable_wifi_status=0,ntp_status=0,ping_count=0;
 
 int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0,resol=0;
 pthread_t tid[2];
-int a=0;
+int a=0,gps_on_status=0;
 
-#define BAUDRATE B9600
+#define BAUDRATE B115200
 /* change this definition for the correct port */
 #define MODEMDEVICE "/dev/mux1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -68,13 +69,30 @@ volatile sig_atomic_t  t_stat=0;
 
 void handle_alarm( int sig )
 {
-    //    printf("Alarm Called\n");
+    printf("Alarm Called\n");
     thread_stat = 0;
     t_stat=1;
 }
 
 void signal_handler_IO(int status){
     wait_flag = FALSE;
+}
+
+static void file_write(char *filename,char *data)
+{
+    int fp_write;
+    fp_write = open(filename,O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+    write(fp_write,data,sizeof(data));
+    close(fp_write);
+}
+static int file_read(char *filepath)
+{
+    FILE *fp_read;
+    int rdata;
+    fp_read = fopen(filepath,"r");
+    fscanf(fp_read,"%d",&rdata);
+    fclose(fp_read);
+    return rdata;
 }
 
 static void wifi_signal(void)
@@ -103,23 +121,28 @@ static void wifi_signal(void)
         {
             if(sigw<=20)
             {
-                system("echo 5 > /opt/daemon_files/signal_level");
+                //                system("echo 5 > /opt/daemon_files/signal_level");
+                file_write("/opt/daemon_files/signal_level","5");
             }
             else if(sigw>=20 && sigw<=40)
             {
-                system("echo 4 > /opt/daemon_files/signal_level");
+                //                system("echo 4 > /opt/daemon_files/signal_level");
+                file_write("/opt/daemon_files/signal_level","4");
             }
             else if(sigw>=40 && sigw<=60)
             {
-                system("echo 3 > /opt/daemon_files/signal_level");
+                //                system("echo 3 > /opt/daemon_files/signal_level");
+                file_write("/opt/daemon_files/signal_level","3");
             }
             else if(sigw>=60 && sigw<=80)
             {
-                system("echo 2 > /opt/daemon_files/signal_level");
+                //                system("echo 2 > /opt/daemon_files/signal_level");
+                file_write("/opt/daemon_files/signal_level","2");
             }
             else
             {
-                system("echo 1 > /opt/daemon_files/signal_level");
+                //                system("echo 1 > /opt/daemon_files/signal_level");
+                file_write("/opt/daemon_files/signal_level","1");
             }
         }
         fclose(fd);
@@ -132,14 +155,12 @@ static void restart_pppd(void)
     //    printf("Restarting PPPD\n");
     system("killall pppd ");
     sleep(1);
-    system("pppd call gprs");
-    sleep(1);
 }
 
 static void enable_gprs(void)
 {
-    system("echo 1 > /sys/class/gpio/gpio42/value");
-    system("echo 1 > /sys/class/gpio/gpio288/value");
+    file_write("/sys/class/gpio/gpio42/value","1");
+    file_write("/sys/class/gpio/gpio288/value","1");
 
     enable_gprs_status=1;
 }
@@ -231,13 +252,11 @@ static void operator_check(void)
             memset(buf,0x00,sizeof(buf));
         }
     }
-
     /**************************Sim Detect********************************/
     if(status_sim==1)
     {
+        /**************************Network Status*****************************/
         STOP=FALSE;
-
-
         write(fd, gsmops, sizeof(gsmops));
 
         while (STOP==FALSE) {
@@ -265,6 +284,9 @@ static void operator_check(void)
             memset(buf,0x00,sizeof(buf));
         }
 
+        /**************************Network Status*****************************/
+        usleep(100000);
+        /**************************Tower Status*******************************/
         STOP=FALSE;
         write(fd,gsmcsq,sizeof(gsmcsq));
 
@@ -281,8 +303,7 @@ static void operator_check(void)
                 STOP=TRUE;
             }
             usleep(50000);
-            //        if(wait_flag == FALSE)
-            //        {
+
             res = read(fd, buf, sizeof(buf));
             buf[res]=0;
             printf("Data3: %s\n",buf);
@@ -303,34 +324,96 @@ static void operator_check(void)
                 int sig_int=atoi(sig);
                 if(sig_int>5 && sig_int<=10)
                 {
-                    system("echo 6 > /opt/daemon_files/tower_value");
+                    file_write("/opt/daemon_files/tower_value","6");
                 }
                 else if(sig_int>10 && sig_int<=15)
                 {
-                    system("echo 7 > /opt/daemon_files/tower_value");
+                    file_write("/opt/daemon_files/tower_value","7");
                 }
                 else if(sig_int>15 && sig_int<=20)
                 {
-                    system("echo 8 > /opt/daemon_files/tower_value");
+                    file_write("/opt/daemon_files/tower_value","8");
                 }
                 else if(sig_int>20 && sig_int<=25)
                 {
-                    system("echo 9 > /opt/daemon_files/tower_value");
+                    file_write("/opt/daemon_files/tower_value","9");
                 }
                 else if(sig_int>25)
                 {
-                    system("echo 10 > /opt/daemon_files/tower_value");
+                    file_write("/opt/daemon_files/tower_value","10");
                 }
                 STOP=TRUE;
             }
             memset(buf,0x00,sizeof(buf));
         }
+
+        /**************************Tower Status*******************************/
+        usleep(100000);
+        /**************************Tower GPS Status********************************/
+
+        if(gps_on_status==0)
+        {
+            STOP=FALSE;
+            write(fd,gps_on,sizeof(gps_on));
+            while (STOP==FALSE) {
+                if ( thread_stat == 0 ) {
+                    thread_stat=1;
+                    alarm(0);
+                    alarm(3);
+                }
+                if(t_stat==1){
+                    t_stat=0;
+                    STOP=TRUE;
+                }
+                usleep(50000);
+                res = read(fd,buf,255);
+                buf[res]=0;
+                printf("%s\n", buf);
+                if (buf[0]=='O')
+                {
+                    //                    printf("GPS Enabled\n");
+                    gps_on_status=1;
+                    STOP=TRUE;
+                }
+            }
+        }
+        else if(gps_on_status==1)
+        {
+            STOP=FALSE;
+            write(fd,gps_loc,sizeof(gps_loc));
+            while (STOP==FALSE) {
+                if ( thread_stat == 0 ) {
+                    thread_stat=1;
+                    alarm(0);
+                    alarm(3);
+                }
+                if(t_stat==1){
+                    t_stat=0;
+                    STOP=TRUE;
+                }
+                usleep(50000);
+                res = read(fd,buf,255);
+                buf[res]=0;
+                printf("Data4: %s\n", buf);
+                if (buf[0]=='+')
+                {
+                    //                    printf("GPS Location: %s\n",buf);
+                    fgpsdata = fopen("/usr/share/status/GPS_DATA","w");
+                    fprintf(fgpsdata,"%s",buf);
+                    fclose(fgpsdata);
+                    STOP=TRUE;
+                }
+            }
+        }
+
+        /**************************Tower GPS Status********************************/
+        usleep(50000);
     }
     else
     {
-        system("echo 20 > /opt/daemon_files/tower_value");
-        system("echo Null > /opt/daemon_files/ip_address");
-        system("echo 9 > /opt/daemon_files/ping_status");
+        file_write("/opt/daemon_files/tower_value","20");
+        file_write("/opt/daemon_files/ip_address","0");
+        file_write("/opt/daemon_files/ping_status","9");
     }
     tcflush(fd, TCIOFLUSH);
     tcsetattr(fd,TCSANOW,&oldtio);
@@ -341,29 +424,35 @@ static void disable_gprs(void)
 {
     system("killall gsmMuxd ");
 
-    system("echo 0 > /sys/class/gpio/gpio42/value");
-    system("echo 0 > /sys/class/gpio/gpio288/value");
-    system("echo 0 > /opt/daemon_files/tower_value");
-    system("echo Null > /opt/daemon_files/ip_address");
-    system("echo 9 > /opt/daemon_files/ping_status");
+    file_write("/sys/class/gpio/gpio42/value","0");
+    file_write("/sys/class/gpio/gpio288/value","0");
+    file_write("/opt/daemon_files/tower_value","0");
+    file_write("/opt/daemon_files/ip_address","0");
+    file_write("/opt/daemon_files/ping_status","9");
+
     status_sim=0;
     enable_gprs_status=0;
     ping_count=0;
 }
+
 static void enable_wifi(void)
 {
-    system("echo 1 > /sys/class/gpio/gpio164/value");
+    //    system("echo 1 > /sys/class/gpio/gpio164/value");
+    file_write("/sys/class/gpio/gpio164/value","1");
     system("sh /opt/daemon/wifi_driver enable &");
 
     enable_wifi_status=1;
 }
+
 static void disable_wifi(void)
 {
     system("ifdown wlan0");
     system("echo Null > /opt/daemon_files/ip_address");
-    system("echo 9 > /opt/daemon_files/ping_status");
+    //    system("echo 9 > /opt/daemon_files/ping_status");
+    file_write("/opt/daemon_files/ping_status","9");
     system("sh /opt/daemon/wifi_driver disable &");
-    system("echo 0 > /sys/class/gpio/gpio164/value");
+    //    system("echo 0 > /sys/class/gpio/gpio164/value");
+    file_write("/sys/class/gpio/gpio164/value","0");
 
     enable_wifi_status=0;
     ping_count=0;
@@ -390,6 +479,7 @@ void wlan0_down(void)
     close(sockfd);
 
 }
+
 static int ip_address(char* i_name)
 {
     int n;
@@ -412,6 +502,7 @@ static int ip_address(char* i_name)
     //    printf("IP Address is %s - %s\n" , i_name , inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr) );
     return 0;
 }
+
 /****************************************Ping Function***********************************/
 #define PACKETSIZE  64
 struct packet
@@ -464,16 +555,19 @@ int pingf(char *adress)
     if ( sd < 0 )
     {
         perror("socket");
+        close(sd);
         return 1;
     }
     if ( setsockopt(sd, SOL_IP, IP_TTL, &val, sizeof(val)) != 0)
     {
         perror("Set TTL option");
+        close(sd);
         return 1;
     }
     if ( fcntl(sd, F_SETFL, O_NONBLOCK) != 0 )
     {
         perror("Request nonblocking I/O");
+        close(sd);
         return 1;
     }
     for (loop=0;loop < 10; loop++)
@@ -482,6 +576,7 @@ int pingf(char *adress)
 
         if ( recvfrom(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&r_addr, &len) > 0 )
         {
+            close(sd);
             return 0;
         }
 
@@ -494,75 +589,78 @@ int pingf(char *adress)
         pckt.hdr.un.echo.sequence = cnt++;
         pckt.hdr.checksum = checksum(&pckt, sizeof(pckt));
         if ( sendto(sd, &pckt, sizeof(pckt), 0, (struct sockaddr*)addr, sizeof(*addr)) <= 0 )
+        {
             perror("sendto");
+            close(sd);
+            return 1;
+        }
         usleep(500000);
     }
     close(sd);
     return 1;
 }
-/*
+static void ntp_time_sync()
+{
+    int ntp_onoff = file_read("/usr/share/status/ntp_status");
+    printf("NTP Status: %d\n",ntp_onoff);
+    if(ntp_onoff==1)
+    {
+        if(ntp_status!=1)
+        {
+            system("sh /opt/daemon_files/ntp_new.sh &");
+            ntp_status=1;
+        }
+    }
+}
+
 static void ping(int a)
 {
 
     if(a==1)
     {
-        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
-            //        if (pingf("8.8.8.8")==0)
+        //        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
+        if (pingf("8.8.8.8")==0)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","E");
-                fclose(fping);
-            }
+            //            system("echo E > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","E");
             printf ("\n Exists");
             ping_count++;
-//            if(ntp_status!=1)
-//            {
-//                system("sh /opt/daemon_files/ntp_new.sh &");
-//                ntp_status=1;
-//            }
+            ntp_time_sync();
+            //            if(ntp_status!=1)
+            //            {
+            //                system("sh /opt/daemon_files/ntp_new.sh &");
+            //                ntp_status=1;
+            //            }
         }
         else
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","e");
-                fclose(fping);
-            }
+            //            system("echo e > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","e");
             printf ("\n Not reachable ");
         }
 
     }
     if(a==2)
     {
-        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
-            //        if (pingf("8.8.8.8")==0)
+        //        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
+        if (pingf("8.8.8.8")==0)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","W");
-                fclose(fping);
-            }
+            //            system("echo W > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","W");
             printf ("\n Exists");
             ping_count++;
-//            if(ntp_status!=1)
-//            {
-//                system("sh /opt/daemon_files/ntp_new.sh &");
-//                ntp_status=1;
-//            }
+            ntp_time_sync();
+            //            if(ntp_status!=1)
+            //            {
+            //                system("sh /opt/daemon_files/ntp_new.sh &");
+            //                ntp_status=1;
+            //            }
 
         }
         else
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","w");
-                fclose(fping);
-            }
+            //            system("echo w > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","w");
             printf ("\n Not reachable ");
         }
 
@@ -570,39 +668,32 @@ static void ping(int a)
     if(a==3)
     {
 
-        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
-            //        if (pingf("8.8.8.8")==0)
+        //        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
+        if (pingf("8.8.8.8")==0)
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","G");
-                fclose(fping);
-            }
-//            printf ("\n Exists");
+            //            system("echo G > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","G");
+            //            printf ("\n Exists");
             ping_count++;
             count=0;
-//            if(ntp_status!=1)
-//            {
-//                system("sh /opt/daemon_files/ntp_new.sh &");
-//                ntp_status=1;
-//            }
+            ntp_time_sync();
+            //            if(ntp_status!=1)
+            //            {
+            //                system("sh /opt/daemon_files/ntp_new.sh &");
+            //                ntp_status=1;
+            //            }
         }
         else
         {
-            fping = fopen("/opt/daemon_files/ping_status", "w");
-            if(fping)
-            {
-                fprintf(fping,"%s","g");
-                fclose(fping);
-            }
-//            printf ("\n Not reachable ");
+            //            system("echo g > /opt/daemon_files/ping_status");
+            file_write("/opt/daemon_files/ping_status","g");
+            //            printf ("\n Not reachable ");
         }
 
     }
 }
-*/
 
+/*
 static void ping(int a)
 {
     switch (a) {
@@ -673,7 +764,7 @@ static void ping(int a)
         break;
     }
 }
-
+*/
 void wlan0_up(void)
 {
     int sockfd;
@@ -842,12 +933,15 @@ int main()
 
             //            if(status_sim[0]=='0')
             //            {
-            enable_gprs();
+            if(enable_gprs_status!=1)
+            {
+                enable_gprs();
+            }
             pid_t pid = proc_find("gsmMuxd");
             //                printf("Pid GSMMUXD:%d\n",pid);
             if (pid == -1)
             {
-                system("gsmMuxd -p /dev/ttyS3 -r -s /dev/mux /dev/ptmx /dev/ptmx");
+                system("gsmMuxd -b 115200 -p /dev/ttyS3 -r -s /dev/mux /dev/ptmx /dev/ptmx");
                 sleep(2);
             }
             else
@@ -881,30 +975,11 @@ int main()
             //                system("echo 9 > /opt/daemon_files/ping_status");
             //            }
         }
-        else if(status_buff[1]=='0' && status_buff[3]=='0' && status_buff[5]=='3')
-        {
-            //            fsim = fopen("/sys/class/gpio/gpio169/value", "r");
-            //            if(fsim)
-            //            {
-            //                fscanf(fsim,"%s",status_sim);
-            //                fclose(fsim);
-            //            }
-            //            if(status_sim[0]=='0')
-            //            {
-            //                //GPRS 3G Enable
-            //            }
-            //            else
-            //            {
-            //                //                printf("Sim not found\n");
-            //                system("echo 20 > /opt/daemon_files/tower_value");
-            //                system("echo Null > /opt/daemon_files/ip_address");
-            //                system("echo 9 > /opt/daemon_files/ping_status");
-            //            }
-        }
         else if(status_buff[1]=='0' && status_buff[3]=='0' && status_buff[5]=='0')
         {
-            //            printf("Network OFF\n");
+            printf("Network OFF\n");
             ntp_status=0;
+            gps_on_status=0;
             if(wifi_up_down_status!=0)
             {
                 wlan0_down();

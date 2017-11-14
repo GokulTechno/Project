@@ -181,7 +181,6 @@ int main() {
                 //                printf("Launching Gps Daemon\n");
                 sleep(1);
             }
-
         }
         else
         {
