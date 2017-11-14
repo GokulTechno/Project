@@ -1,3 +1,0 @@
-find: 0000, replace: ,
-find: 0000}, replace: },
-find: 0000}\n};  replace: }};
