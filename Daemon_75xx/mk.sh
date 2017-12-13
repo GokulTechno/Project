@@ -42,11 +42,36 @@ make
 cp timezone ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
 cp timezone ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
 cd ..
+cd $PWD/usb_autorun
+qmake
+make
+cp usb_autorun ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autorun ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cd ..
+cd $PWD/usb_autoremove
+qmake
+make
+cp usb_autoremove ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autoremove ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cd ..
+cd $PWD/mmc_autorun
+qmake
+make
+cp mmc_autorun ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autorun ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cd ..
+cd $PWD/mmc_autoremove
+qmake
+make
+cp mmc_autoremove ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autoremove ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cd ..
+
 chmod 777 build/*
 cp build/* ../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/opt/daemon_files/
 cp build/* ../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/opt/daemon_files/
 echo "Copied to 7510 Filesystem"
 cp build/* ../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/opt/daemon_files/
-cp build/* ../7520_3.5_Inch/LatestUpdateFilesystem/MATCHBOX_14112016/opt/daemon_files/
+cp build/* ../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/opt/daemon_files/
 
 echo "Copied to 7520 Filesystem"

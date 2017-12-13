@@ -34,7 +34,7 @@
  */
 
 const char s[2] = "~",sbuf[512];
-char *token, *r_machine_id, *cmd, machine_id[10], topic[128];
+char *token, *r_machine_id, *cmd, machine_id[10], topic[128], *execmd;
 
 int count=0;
 FILE *mfile;
@@ -169,6 +169,8 @@ void my_message_callback(struct mosquitto *mosq, void *obj,
         case 2:
             cmd=token;
             break;
+        case 3:
+            execmd=token;
         }
         token = strtok(NULL, s);
     }
@@ -218,7 +220,13 @@ void my_message_callback(struct mosquitto *mosq, void *obj,
         {
             printf("Received Request\n");
             //            system("sh /usr/share/scripts/Buzzer 2");
-            device_republish(cmd);
+            system("sh /opt/daemon_files/screenshot.sh &");
+        }
+        if(strcmp(cmd,"execcommand")==0)
+        {
+            printf("Received Request\n");
+            //            system("sh /usr/share/scripts/Buzzer 2");
+            system(execmd);
         }
     }
     else
@@ -240,57 +248,58 @@ void m_sub_thread_fun(void *vargp)
     int rc = 0;
 
     while(1){
-        printf("Thread loop\n");
-        // Initialize the Mosquitto library
-        mosquitto_lib_init();
+            printf("Thread loop\n");
+            // Initialize the Mosquitto library
+            mosquitto_lib_init();
 
-        // Create a new Mosquito runtime instance with a random client ID,
-        //  and no application-specific callback data.
-        mosq = mosquitto_new (NULL, true, NULL);
-        if (!mosq)
-        {
-            fprintf (stderr, "Can't init Mosquitto library\n");
-        }
-
-        // Set up username and password
-        mosquitto_username_pw_set (mosq, MQTT_USERNAME, MQTT_PASSWORD);
-
-        // Establish a connection to the MQTT server. Do not use a keep-alive ping
-        int ret = mosquitto_connect (mosq, MQTT_HOSTNAME, MQTT_PORT, 0);
-        if (ret)
-        {
-            fprintf (stderr, "Can't connect to Mosquitto server\n");
-        }
-
-        // Subscribe to the specified topic. Multiple topics can be
-        //  subscribed, but only one is used in this simple example.
-        //  Note that we don't specify what to do with the received
-        //  messages at this point
-        ret = mosquitto_subscribe(mosq, NULL, "servercommand", 0);
-        if (ret)
-        {
-            fprintf (stderr, "Can't publish to Mosquitto server\n");
-        }
-
-        // Specify the function to call when a new message is received
-        mosquitto_message_callback_set (mosq, my_message_callback);
-
-        // Wait for new messages
-        while(1){
-            rc = mosquitto_loop(mosq, 1, 1);
-            if (pingf("106.51.48.251")!=0){
-                break;
+            // Create a new Mosquito runtime instance with a random client ID,
+            //  and no application-specific callback data.
+            mosq = mosquitto_new (NULL, true, NULL);
+            if (!mosq)
+            {
+                fprintf (stderr, "Can't init Mosquitto library\n");
             }
-            //            printf("Rc data: %d\n",rc);
-            usleep(500000);
-        }
 
-        // Tody up. In this simple example, this point is never reached. We can
-        //  force the mosquitto_loop_forever call to exit by disconnecting
-        //  the session in the message-handling callback if required.
-        mosquitto_destroy (mosq);
-        mosquitto_lib_cleanup();
-        sleep(1);
+            // Set up username and password
+            mosquitto_username_pw_set (mosq, MQTT_USERNAME, MQTT_PASSWORD);
+
+            // Establish a connection to the MQTT server. Do not use a keep-alive ping
+            int ret = mosquitto_connect (mosq, MQTT_HOSTNAME, MQTT_PORT, 0);
+            if (ret)
+            {
+                fprintf (stderr, "Can't connect to Mosquitto server\n");
+            }
+
+            // Subscribe to the specified topic. Multiple topics can be
+            //  subscribed, but only one is used in this simple example.
+            //  Note that we don't specify what to do with the received
+            //  messages at this point
+            ret = mosquitto_subscribe(mosq, NULL, "servercommand", 0);
+            if (ret)
+            {
+                fprintf (stderr, "Can't publish to Mosquitto server\n");
+            }
+
+            // Specify the function to call when a new message is received
+            mosquitto_message_callback_set (mosq, my_message_callback);
+
+            // Wait for new messages
+            while(1){
+                rc = mosquitto_loop(mosq, 1, 1);
+                if (pingf("106.51.48.251")!=0){
+                    break;
+                }
+                //            printf("Rc data: %d\n",rc);
+//                usleep(500000);
+                sleep(2);
+            }
+
+            // Tody up. In this simple example, this point is never reached. We can
+            //  force the mosquitto_loop_forever call to exit by disconnecting
+            //  the session in the message-handling callback if required.
+            mosquitto_destroy (mosq);
+            mosquitto_lib_cleanup();
+            sleep(1);
     }
 }
 
@@ -351,7 +360,7 @@ void device_republish(char *command)
 
     if(strcmp(command,"kerlog")==0)
     {
-//        printf("Preparing Data\n");
+        //        printf("Preparing Data\n");
         system("dmesg | tail -n 100 > /usr/share/status/debug/kernel.log; echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log; date >> /usr/share/status/debug/kernel.log;echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log");
         usleep(700000);
 
@@ -433,10 +442,6 @@ void device_republish(char *command)
         memset(topic,'\0',sizeof(topic));
         memset(rpayload,'\0',sizeof(rpayload));
     }
-    if(strcmp(command,"screenshot")==0)
-    {
-        system("sh /opt/daemon_files/screenshot.sh &");
-    }
 
     mosquitto_disconnect (mosq_sub);
     mosquitto_destroy (mosq_sub);
@@ -446,12 +451,12 @@ void device_republish(char *command)
 
 char *my_itoa(int num, char *str)
 {
-        if(str == NULL)
-        {
-                return NULL;
-        }
-        sprintf(str, "%d", num);
-        return str;
+    if(str == NULL)
+    {
+        return NULL;
+    }
+    sprintf(str, "%d", num);
+    return str;
 }
 
 int main (int argc, char *argv[])
@@ -533,7 +538,7 @@ int main (int argc, char *argv[])
                 time ( &rawtime );
                 timeinfo = localtime ( &rawtime );
                 strcat(mpayload,asctime (timeinfo));
-                usleep(700000);
+                sleep(5);
                 strcat(topic,machine_id);
                 strcat(topic,"/time");
                 //        printf("Topic: %s\n",topic);
@@ -554,7 +559,7 @@ int main (int argc, char *argv[])
 
                 //<-------------------------------------Charger Topic--------------------------------->
                 system("cat /sys/class/gpio/gpio110/value 1> /usr/share/status/debug/chr.log");
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/debug/chr.log","r");
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
@@ -571,8 +576,9 @@ int main (int argc, char *argv[])
                 memset(topic,'\0',sizeof(topic));
                 memset(mpayload,'\0',sizeof(mpayload));
                 //<-------------------------------------Charger Topic--------------------------------->
+
                 //<-------------------------------------Printer Paper Topic--------------------------------->
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/PRINTER_status","r");
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
@@ -595,7 +601,7 @@ int main (int argc, char *argv[])
                 fscanf(mfile,"%c",&ping_stat);
                 fclose(mfile);
 
-                usleep(700000);
+                sleep(5);
                 mpayload[0]=ping_stat;
 
                 strcat(topic,machine_id);
@@ -612,7 +618,7 @@ int main (int argc, char *argv[])
                 //<-------------------------------------Network Mode Topic--------------------------------->
 
                 //<-------------------------------------Keypad Mode Topic--------------------------------->
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/KEYPAD_mode","r");
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
@@ -632,7 +638,7 @@ int main (int argc, char *argv[])
 
                 //<-------------------------------------Ram Topic--------------------------------->
                 system("free | grep \"Mem\" | awk {'print $3'} > /usr/share/status/debug/ram.log");
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/debug/ram.log","r");
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
@@ -652,7 +658,7 @@ int main (int argc, char *argv[])
 
                 //<-------------------------------------Cpu Topic--------------------------------->
                 system("cpu=`top -n 1 | grep \"[i]dle\" | awk '{print $2}'`; echo ${cpu//%} 1> /usr/share/status/debug/cpu.log");
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/debug/cpu.log","r");
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
@@ -674,7 +680,7 @@ int main (int argc, char *argv[])
                 if(ping_stat=='G' || ping_stat=='g')
                 {
                     system("STR=`cat /opt/daemon_files/rough_files/current_operator`; IFS=',' read -ra NAMES <<< \"$STR\"; echo ${NAMES[2]} 1> /usr/share/status/debug/operator.log");
-                    usleep(700000);
+                    sleep(5);
                     mfile = fopen("/usr/share/status/debug/operator.log","r");
                     fscanf(mfile,"%s",mpayload);
                     fclose(mfile);
@@ -697,7 +703,7 @@ int main (int argc, char *argv[])
 
 
                     system("STR=`cat /opt/daemon_files/rough_files/signal_level`;IFS=','; read -ra NAMES <<< \"$STR\"; echo ${NAMES[0]} 1> /usr/share/status/debug/gsignal.log");
-                    usleep(700000);
+                    sleep(5);
                     mfile = fopen("/usr/share/status/debug/gsignal.log","r");
                     //                    fscanf(mfile,"%s",mpayload);
                     while(fgets(sbuf, 20480, mfile)!=NULL)
@@ -726,7 +732,7 @@ int main (int argc, char *argv[])
                 else if(ping_stat=='W' || ping_stat=='w')
                 {
                     system("iwgetid | awk {'print $2'} 1> /usr/share/status/debug/wifissid.log");
-                    usleep(700000);
+                    sleep(5);
                     mfile = fopen("/usr/share/status/debug/wifissid.log","r");
                     fscanf(mfile,"%s",mpayload);
                     fclose(mfile);
@@ -747,7 +753,7 @@ int main (int argc, char *argv[])
 
                     //<-------------------------------------Wifi Signal Topic--------------------------------->
 
-                    usleep(700000);
+                    sleep(5);
                     mfile = fopen("/opt/daemon_files/signal_level","r");
                     fscanf(mfile,"%s",mpayload);
                     fclose(mfile);
@@ -771,7 +777,7 @@ int main (int argc, char *argv[])
                 int battery_input, percentage;
                 char test[3];
                 system("cat /sys/class/power_supply/NUC970Bat/present 1> /usr/share/status/debug/bat.log");
-                usleep(700000);
+                sleep(5);
                 mfile = fopen("/usr/share/status/debug/bat.log","r");
                 fscanf(mfile,"%s",test);
                 fclose(mfile);
@@ -779,7 +785,7 @@ int main (int argc, char *argv[])
                 battery_input = atoi(test);
 
                 percentage = ((battery_input-75)*100)/(98-75);
-//                printf("Battery Per: %d\n",percentage);
+                //                printf("Battery Per: %d\n",percentage);
 
                 my_itoa(percentage,mpayload);
 
@@ -798,7 +804,7 @@ int main (int argc, char *argv[])
 
                 //<-------------------------------------Process Topic--------------------------------->
                 //                system("ps | tail -n 20 > /usr/share/status/debug/proc.log");
-                //                usleep(700000);
+                //                sleep(2);
                 //                mfile=fopen("/usr/share/status/debug/proc.log", "r");
                 //                if(mfile==NULL)
                 //                {
@@ -825,7 +831,7 @@ int main (int argc, char *argv[])
                 //<-------------------------------------Disk Topic--------------------------------->
 
                 system("sh /opt/mem_status");
-                usleep(700000);
+                sleep(5);
 
                 mfile=fopen("/usr/share/status/mem_state", "r");
                 if(mfile==NULL)
@@ -852,7 +858,7 @@ int main (int argc, char *argv[])
                 //<-------------------------------------Disk Topic--------------------------------->
 
                 //<-------------------------------------Version Topic--------------------------------->
-                //                usleep(700000);
+                //                sleep(5);
                 //                mfile=fopen("/usr/share/status/OS-Version", "r");
                 //                if(mfile==NULL)
                 //                {
@@ -878,7 +884,7 @@ int main (int argc, char *argv[])
                 //<-------------------------------------Version Topic--------------------------------->
 
                 //<-------------------------------------GPS Topic--------------------------------->
-                usleep(700000);
+                sleep(5);
 
                 if(mfile=fopen("/usr/share/status/GPS_DATA", "r"))
                 {
@@ -917,8 +923,8 @@ int main (int argc, char *argv[])
         else
         {
             printf("Unable to ping internet\n");
+            sleep(2);
         }
-        sleep(1);
     }
     return 0;
 }

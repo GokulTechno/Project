@@ -47,8 +47,6 @@ void handle_alarm( int sig )
     standby(0);
     //    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
     system("sh /usr/share/scripts/backlight 0");
-    system("echo 0 > /sys/class/gpio/gpio143/value");
-    system("echo 3 > /proc/sys/vm/drop_caches");
     backlight_status=0;
 }
 
@@ -60,7 +58,7 @@ void* doSomeThing(void *arg)
 
     if(pthread_equal(id,tid))
     {
-        //        printf("\n First thread processing\n");
+        //        printf("\n First thread ccessing\n");
         int fd;
         struct input_event ie;
 
@@ -152,12 +150,36 @@ static const char *const evval[3] = {
 
 char standbydata[1];
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    if( argc == 2 ) {
+        if(strcmp(argv[1],"-d")==0)
+        {
+            pid_t pid, sid;
+            pid = fork();
+            if (pid < 0) { exit(EXIT_FAILURE); }
+            if (pid > 0) { exit(EXIT_SUCCESS); }
+            umask(0);
+            sid = setsid();
+            if (sid < 0) { exit(EXIT_FAILURE); }
+            if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+        }
+    }
+    else if( argc > 2 ) {
+        printf("Too many arguments supplied.\n");
+    }
+    else {
+        printf("Debug Mode.\n");
+    }
+
     FILE *keymode,*keysymbol;
     int shmid,CAPS=0;
     key_t key;
     char *shm, *s;
+    int home_press=0;
 
     key = 3333;
 
@@ -172,18 +194,6 @@ int main(void)
     }
 
     s = shm;
-
-    pid_t pid, sid;
-    pid = fork();
-    if (pid < 0) { exit(EXIT_FAILURE); }
-    if (pid > 0) { exit(EXIT_SUCCESS); }
-    umask(0);
-    sid = setsid();
-    if (sid < 0) { exit(EXIT_FAILURE); }
-    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
 
     signal( SIGALRM, handle_alarm );
 
@@ -239,6 +249,8 @@ int main(void)
 
     system("echo 0 > /proc/keypad/KEYPAD_mode");
     system("echo 0 > /usr/share/status/KEYPAD_mode");
+
+
 
     if(kdata==2)
     {
@@ -310,6 +322,49 @@ int main(void)
 
                 standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+
+                if((int)ev.code==63)
+                {
+                    switch(ev.value)
+                    {
+                    case 2:
+                        home_press=1;
+                        break;
+                    case 1:
+                        home_press=1;
+                        break;
+                    case 0:
+                        home_press=0;
+                        break;
+                    }
+                }
+                printf("HomePress=%d\n",home_press);
+                if(((int)ev.code==2 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 1 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==3 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 2 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==4 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 3 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==5 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 4 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==6 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 5 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+
                 if((int)ev.code==58 && (int)ev.value==1)
                 {
                     if(CAPS==0)
@@ -432,6 +487,49 @@ int main(void)
                 }
                 standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
+
+                if((int)ev.code==63)
+                {
+                    switch(ev.value)
+                    {
+                    case 2:
+                        home_press=1;
+                        break;
+                    case 1:
+                        home_press=1;
+                        break;
+                    case 0:
+                        home_press=0;
+                        break;
+                    }
+                }
+                printf("HomePress=%d\n",home_press);
+                if(((int)ev.code==2 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 1 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==3 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 2 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==4 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 3 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==5 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 4 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==6 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 5 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+
                 if((int)ev.code==56)
                 {
                     bfile = fopen("/usr/share/status/KEYPAD_mode","r");
@@ -464,7 +562,6 @@ int main(void)
                             printf("Numeric mode set reset\n");
                         }
                     }
-
                 }
                 else if((int)ev.code==58 && (int)ev.value==1)
                 {

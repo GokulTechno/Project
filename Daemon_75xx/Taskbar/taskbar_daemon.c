@@ -79,7 +79,30 @@ pid_t proc_find(const char* name)
     return -1;
 }
 
-int main() {
+int main(int argc, char *argv[])
+{
+    if( argc == 2 ) {
+        if(strcmp(argv[1],"-d")==0)
+        {
+            pid_t pid, sid;
+            pid = fork();
+            if (pid < 0) { exit(EXIT_FAILURE); }
+            if (pid > 0) { exit(EXIT_SUCCESS); }
+            umask(0);
+            sid = setsid();
+            if (sid < 0) { exit(EXIT_FAILURE); }
+            if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+        }
+    }
+    else if( argc > 2 ) {
+        printf("Too many arguments supplied.\n");
+    }
+    else {
+        printf("Debug Mode.\n");
+    }
 
     char c, gpssat[3];
     FILE *fp_bat;
@@ -104,20 +127,6 @@ int main() {
     }
     s = shm;
     /*Shared Memory Creation*/
-
-    /*Deamon Process Creation*/
-    pid_t pid, sid;
-    pid = fork();
-    if (pid < 0) { exit(EXIT_FAILURE); }
-    if (pid > 0) { exit(EXIT_SUCCESS); }
-    umask(0);
-    sid = setsid();
-    if (sid < 0) { exit(EXIT_FAILURE); }
-    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    /*Deamon Process Creation*/
 
     while(1)
     {
@@ -275,23 +284,31 @@ int main() {
             fread(charger_status1, 1, 1, fp_status1);
             fclose(fp_status1);
         }
-
-        if(vol>=4885)
+        if(charger_status1[0] == '0')
         {
-            task_bar_status[8]='0';
-        }
-        else
-        {
-            if(charger_status1[0] == '0')
+            if(vol>=4885)
             {
                 task_bar_status[8]='+';
-                present_level=5;
+                task_bar_status[9]='9';
             }
-            else if(charger_status1[0] == '1')
+            else
+            {
+                task_bar_status[8]='+';
+            }
+        }
+        else if(charger_status1[0] == '1')
+        {
+            if(vol>=4885)
+            {
+                task_bar_status[8]='-';
+                task_bar_status[9]='F';
+            }
+            else
             {
                 task_bar_status[8]='-';
             }
         }
+
         for (c = 0; c < 11; c++)
         {
             *s++ = task_bar_status[c];
@@ -299,12 +316,11 @@ int main() {
         *s = '\0';
         shmdt(shm);
         shmdt(s);
-        //        for(i=0;i<11;i++)
-        //        {
-        //            printf("%c",task_bar_status[i]);
-        //        }
-        //        printf("\n");
+        for(i=0;i<11;i++)
+        {
+            printf("%c",task_bar_status[i]);
+        }
+        printf("\n");
         sleep(1);
     }
-
 }

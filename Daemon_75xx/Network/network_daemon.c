@@ -111,7 +111,7 @@ static void wifi_signal(void)
             }
         }
         if(!end)
-            //            printf("%s\n",str);
+            //  printf("%s\n",str);
             rssi[0]=str[21];
         rssi[1]=str[22];
         rssi[2]='\0';
@@ -310,10 +310,13 @@ static void operator_check(void)
             if(buf[0]=='+' && buf[1]=='C' && buf[2]=='S' && buf[3]=='Q')
             {
                 printf("CSQ Received!!!\n");
-                char sig[2];
+                char sig[2],net[2];
                 sig[0]=buf[6];
                 sig[1]=buf[7];
                 sig[2]='\0';
+                net[0]=buf[9];
+                net[1]=buf[10];
+                net[2]='\0';
                 FILE *fd_csq;
                 fd_csq = fopen("/opt/daemon_files/rough_files/signal_level","w");
                 if(fd_csq)
@@ -322,6 +325,7 @@ static void operator_check(void)
                     fclose(fd_csq);
                 }
                 int sig_int=atoi(sig);
+                int sig_net=atoi(net);
                 if(sig_int>5 && sig_int<=10)
                 {
                     file_write("/opt/daemon_files/tower_value","6");
@@ -338,9 +342,13 @@ static void operator_check(void)
                 {
                     file_write("/opt/daemon_files/tower_value","9");
                 }
-                else if(sig_int>25)
+                else if(sig_int>25 && sig_int<=35)
                 {
                     file_write("/opt/daemon_files/tower_value","10");
+                }
+                else if(sig_int>35 || sig_net==99)
+                {
+                    file_write("/opt/daemon_files/tower_value","0");
                 }
                 STOP=TRUE;
             }
@@ -621,20 +629,13 @@ static void ping(int a)
         //        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
         if (pingf("8.8.8.8")==0)
         {
-            //            system("echo E > /opt/daemon_files/ping_status");
             file_write("/opt/daemon_files/ping_status","E");
             printf ("\n Exists");
             ping_count++;
             ntp_time_sync();
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
         }
         else
         {
-            //            system("echo e > /opt/daemon_files/ping_status");
             file_write("/opt/daemon_files/ping_status","e");
             printf ("\n Not reachable ");
         }
@@ -650,12 +651,6 @@ static void ping(int a)
             printf ("\n Exists");
             ping_count++;
             ntp_time_sync();
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
-
         }
         else
         {
@@ -677,94 +672,17 @@ static void ping(int a)
             ping_count++;
             count=0;
             ntp_time_sync();
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
         }
         else
         {
             //            system("echo g > /opt/daemon_files/ping_status");
             file_write("/opt/daemon_files/ping_status","g");
-            //            printf ("\n Not reachable ");
+            printf ("\n Not reachable ");
         }
 
     }
 }
 
-/*
-static void ping(int a)
-{
-    switch (a) {
-    case 1:
-        if ( system("ping -c 3 8.8.8.8 -w 3 > /dev/null") == 0)
-        {
-            system("echo E > /opt/daemon_files/ping_status");
-            printf("Pinging !!!\n");
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
-        }
-        else
-        {
-            system("echo e > /opt/daemon_files/ping_status");
-        }
-        break;
-    case 2:
-        if ( system("ping -c 3 8.8.8.8 -w 3 > /dev/null") == 0)
-        {
-            system("echo W > /opt/daemon_files/ping_status");
-
-            printf("Pinging !!!\n");
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
-        }
-        else
-        {
-            system("echo w > /opt/daemon_files/ping_status");
-        }
-        break;
-    case 3:
-        if ( system("ping -c 3 8.8.8.8 -w 3 > /dev/null") == 0)
-        {
-            system("echo G > /opt/daemon_files/ping_status");
-            ping_count=0;
-            printf("Pinging !!!\n");
-            //            if(ntp_status!=1)
-            //            {
-            //                system("sh /opt/daemon_files/ntp_new.sh &");
-            //                ntp_status=1;
-            //            }
-        }
-        else
-        {
-            ping_count++;
-            if(ping_count>4)
-            {
-                system("echo g > /opt/daemon_files/ping_status");
-                ping_count=0;
-            }
-            //            if(count == 2)
-            //            {
-            //                ping_value=0;
-            //                break;
-            //            }
-            //            //printf("Not Pinging !!!\n");
-            //            count++;
-            //            if(count == 3)
-            //                count=0;
-            //            //printf ("\n Not reachable ");
-        }
-        break;
-    }
-}
-*/
 void wlan0_up(void)
 {
     int sockfd;
@@ -844,19 +762,30 @@ int new_ping(char *ipaddr) {
 }
 //----------- Main --------------------------
 
-int main()
+int main(int argc, char *argv[])
 {
-    pid_t pid, sid;
-    pid = fork();
-    if (pid < 0) { exit(EXIT_FAILURE); }
-    if (pid > 0) { exit(EXIT_SUCCESS); }
-    umask(0);
-    sid = setsid();
-    if (sid < 0) { exit(EXIT_FAILURE); }
-    if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
+    if( argc == 2 ) {
+        if(strcmp(argv[1],"-d")==0)
+        {
+            pid_t pid, sid;
+            pid = fork();
+            if (pid < 0) { exit(EXIT_FAILURE); }
+            if (pid > 0) { exit(EXIT_SUCCESS); }
+            umask(0);
+            sid = setsid();
+            if (sid < 0) { exit(EXIT_FAILURE); }
+            if ((chdir("/")) < 0) { exit(EXIT_FAILURE); }
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+        }
+    }
+    else if( argc > 2 ) {
+        printf("Too many arguments supplied.\n");
+    }
+    else {
+        printf("Debug Mode.\n");
+    }
 
     while(1)
     {
@@ -938,7 +867,7 @@ int main()
                 enable_gprs();
             }
             pid_t pid = proc_find("gsmMuxd");
-            //                printf("Pid GSMMUXD:%d\n",pid);
+            printf("Pid GSMMUXD:%d\n",pid);
             if (pid == -1)
             {
                 system("gsmMuxd -b 115200 -p /dev/ttyS3 -r -s /dev/mux /dev/ptmx /dev/ptmx");
@@ -952,7 +881,7 @@ int main()
                 if(status_sim==1)
                 {
                     pid_t pid = proc_find("pppd");
-                    //                    printf("Pid PPPD:%d\n",pid);
+                    printf("Pid PPPD:%d\n",pid);
                     if (pid == -1)
                     {
                         system("pppd call gprs");
@@ -960,20 +889,12 @@ int main()
                     }
                     else
                     {
-                        //                        printf("Pinging !!!\n");
+                        printf("Pinging !!!\n");
                         ping(3);
                         ip_address("ppp0");
                     }
                 }
             }
-            //            }
-            //            else
-            //            {
-            //                //                printf("Sim not found\n");
-            //                system("echo 20 > /opt/daemon_files/tower_value");
-            //                system("echo Null > /opt/daemon_files/ip_address");
-            //                system("echo 9 > /opt/daemon_files/ping_status");
-            //            }
         }
         else if(status_buff[1]=='0' && status_buff[3]=='0' && status_buff[5]=='0')
         {
@@ -994,7 +915,6 @@ int main()
             }
         }
         count++;
-        //        printf("\n\n Count =%d \n\n",count);
         sleep(1);
     }//Ever loop ending
     return 0;
