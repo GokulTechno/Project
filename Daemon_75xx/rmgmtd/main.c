@@ -36,7 +36,7 @@
 const char s[2] = "~",sbuf[512];
 char *token, *r_machine_id, *cmd, machine_id[10], topic[128], *execmd;
 
-int count=0;
+int count=0,internet_connection=0;
 FILE *mfile;
 
 #define PACKETSIZE  64
@@ -248,8 +248,10 @@ void m_sub_thread_fun(void *vargp)
     int rc = 0;
 
     while(1){
-            printf("Thread loop\n");
-            // Initialize the Mosquitto library
+        printf("Thread loop\n");
+        // Initialize the Mosquitto library
+        if(pingf("106.51.48.231")==0)
+        {
             mosquitto_lib_init();
 
             // Create a new Mosquito runtime instance with a random client ID,
@@ -287,19 +289,18 @@ void m_sub_thread_fun(void *vargp)
             while(1){
                 rc = mosquitto_loop(mosq, 1, 1);
                 if (pingf("106.51.48.251")!=0){
+                    sleep(1);
                     break;
                 }
-                //            printf("Rc data: %d\n",rc);
-//                usleep(500000);
-                sleep(2);
             }
-
             // Tody up. In this simple example, this point is never reached. We can
             //  force the mosquitto_loop_forever call to exit by disconnecting
             //  the session in the message-handling callback if required.
             mosquitto_destroy (mosq);
             mosquitto_lib_cleanup();
-            sleep(1);
+        }
+        sleep(1);
+        printf("Thread working\n");
     }
 }
 
@@ -487,14 +488,16 @@ int main (int argc, char *argv[])
 
     pthread_t m_sub;
     pthread_create(&m_sub,NULL,m_sub_thread_fun,NULL);
+    //    pthread_join(m_sub, NULL);
 
     time_t rawtime;
     struct tm * timeinfo;
 
     char mpayload[20480], s[512], ping_stat;;
+    char mpayloadTemp[20480]; // used to concatenate HW health counters
 
     while(1){
-
+        printf("Internet Connection: %d\n", internet_connection);
         if (pingf("106.51.48.231")==0)
         {
             struct mosquitto *mosq = NULL;
@@ -561,8 +564,11 @@ int main (int argc, char *argv[])
                 system("cat /sys/class/gpio/gpio110/value 1> /usr/share/status/debug/chr.log");
                 sleep(5);
                 mfile = fopen("/usr/share/status/debug/chr.log","r");
-                fscanf(mfile,"%s",mpayload);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",mpayload);
+                    fclose(mfile);
+                }
 
                 strcat(topic,machine_id);
                 strcat(topic,"/chr");
@@ -583,6 +589,21 @@ int main (int argc, char *argv[])
                 fscanf(mfile,"%s",mpayload);
                 fclose(mfile);
 
+                /** adding paper length to ppstat topic **/
+
+                memset(mpayloadTemp,'0',sizeof(char));
+                mfile = fopen("/usr/share/status/debug/printLength.log","r");
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",mpayloadTemp);
+                    fclose(mfile);
+                }
+                strcat(mpayload,"~");
+                strcat(mpayload,mpayloadTemp);
+                memset(mpayloadTemp,'\0',sizeof(mpayloadTemp));
+
+                /** --------- **/
+
                 strcat(topic,machine_id);
                 strcat(topic,"/ppstat");
                 //                printf("Topic: %s\n",topic);
@@ -598,8 +619,11 @@ int main (int argc, char *argv[])
 
                 //<-------------------------------------Network Mode Topic--------------------------------->
                 mfile = fopen("/opt/daemon_files/ping_status","r");
-                fscanf(mfile,"%c",&ping_stat);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%c",&ping_stat);
+                    fclose(mfile);
+                }
 
                 sleep(5);
                 mpayload[0]=ping_stat;
@@ -620,8 +644,11 @@ int main (int argc, char *argv[])
                 //<-------------------------------------Keypad Mode Topic--------------------------------->
                 sleep(5);
                 mfile = fopen("/usr/share/status/KEYPAD_mode","r");
-                fscanf(mfile,"%s",mpayload);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",mpayload);
+                    fclose(mfile);
+                }
 
                 strcat(topic,machine_id);
                 strcat(topic,"/kmod");
@@ -640,8 +667,11 @@ int main (int argc, char *argv[])
                 system("free | grep \"Mem\" | awk {'print $3'} > /usr/share/status/debug/ram.log");
                 sleep(5);
                 mfile = fopen("/usr/share/status/debug/ram.log","r");
-                fscanf(mfile,"%s",mpayload);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",mpayload);
+                    fclose(mfile);
+                }
 
                 strcat(topic,machine_id);
                 strcat(topic,"/ram");
@@ -660,8 +690,11 @@ int main (int argc, char *argv[])
                 system("cpu=`top -n 1 | grep \"[i]dle\" | awk '{print $2}'`; echo ${cpu//%} 1> /usr/share/status/debug/cpu.log");
                 sleep(5);
                 mfile = fopen("/usr/share/status/debug/cpu.log","r");
-                fscanf(mfile,"%s",mpayload);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",mpayload);
+                    fclose(mfile);
+                }
 
                 strcat(topic,machine_id);
                 strcat(topic,"/cpu");
@@ -682,8 +715,11 @@ int main (int argc, char *argv[])
                     system("STR=`cat /opt/daemon_files/rough_files/current_operator`; IFS=',' read -ra NAMES <<< \"$STR\"; echo ${NAMES[2]} 1> /usr/share/status/debug/operator.log");
                     sleep(5);
                     mfile = fopen("/usr/share/status/debug/operator.log","r");
-                    fscanf(mfile,"%s",mpayload);
-                    fclose(mfile);
+                    if(mfile)
+                    {
+                        fscanf(mfile,"%s",mpayload);
+                        fclose(mfile);
+                    }
 
 
                     strcat(topic,machine_id);
@@ -706,11 +742,14 @@ int main (int argc, char *argv[])
                     sleep(5);
                     mfile = fopen("/usr/share/status/debug/gsignal.log","r");
                     //                    fscanf(mfile,"%s",mpayload);
-                    while(fgets(sbuf, 20480, mfile)!=NULL)
+                    if(mfile)
                     {
-                        strcat(mpayload,sbuf);
+                        while(fgets(sbuf, 20480, mfile)!=NULL)
+                        {
+                            strcat(mpayload,sbuf);
+                        }
+                        fclose(mfile);
                     }
-                    fclose(mfile);
 
 
                     strcat(topic,machine_id);
@@ -734,8 +773,11 @@ int main (int argc, char *argv[])
                     system("iwgetid | awk {'print $2'} 1> /usr/share/status/debug/wifissid.log");
                     sleep(5);
                     mfile = fopen("/usr/share/status/debug/wifissid.log","r");
-                    fscanf(mfile,"%s",mpayload);
-                    fclose(mfile);
+                    if(mfile)
+                    {
+                        fscanf(mfile,"%s",mpayload);
+                        fclose(mfile);
+                    }
 
 
                     strcat(topic,machine_id);
@@ -755,8 +797,11 @@ int main (int argc, char *argv[])
 
                     sleep(5);
                     mfile = fopen("/opt/daemon_files/signal_level","r");
-                    fscanf(mfile,"%s",mpayload);
-                    fclose(mfile);
+                    if(mfile)
+                    {
+                        fscanf(mfile,"%s",mpayload);
+                        fclose(mfile);
+                    }
 
 
                     strcat(topic,machine_id);
@@ -779,8 +824,11 @@ int main (int argc, char *argv[])
                 system("cat /sys/class/power_supply/NUC970Bat/present 1> /usr/share/status/debug/bat.log");
                 sleep(5);
                 mfile = fopen("/usr/share/status/debug/bat.log","r");
-                fscanf(mfile,"%s",test);
-                fclose(mfile);
+                if(mfile)
+                {
+                    fscanf(mfile,"%s",test);
+                    fclose(mfile);
+                }
 
                 battery_input = atoi(test);
 

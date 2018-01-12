@@ -39,32 +39,39 @@ cd ..
 cd $PWD/Timezone
 qmake
 make
-cp timezone ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
-cp timezone ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/bin/
+cp timezone ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/bin/
+cp timezone ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/bin/
 cd ..
 cd $PWD/usb_autorun
 qmake
 make
-cp usb_autorun ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
-cp usb_autorun ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autorun ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autorun ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
 cd ..
 cd $PWD/usb_autoremove
 qmake
 make
-cp usb_autoremove ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
-cp usb_autoremove ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autoremove ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp usb_autoremove ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
 cd ..
 cd $PWD/mmc_autorun
 qmake
 make
-cp mmc_autorun ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
-cp mmc_autorun ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autorun ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autorun ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
 cd ..
 cd $PWD/mmc_autoremove
 qmake
 make
-cp mmc_autoremove ../../7510_2.8_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
-cp mmc_autoremove ../../7520_3.5_Inch/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autoremove ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cp mmc_autoremove ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/share/scripts/
+cd ..
+
+cd $PWD/eepromtool
+qmake
+make
+cp eepromtool ../../7510_2.8_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/bin/
+cp eepromtool ../../7520_3.5_Inch/LatestUpdate/Filesystem/MATCHBOX_14112016/usr/bin/
 cd ..
 
 chmod 777 build/*

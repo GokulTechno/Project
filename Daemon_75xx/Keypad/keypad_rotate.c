@@ -440,6 +440,7 @@ int main(int argc, char *argv[])
         //        pthread_join(tid);
 
         /*****************************Thread Creation*******************/
+        int alpha_mode=0;
         while (1) {
 
             if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
@@ -488,7 +489,7 @@ int main(int argc, char *argv[])
                 standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
 
-                if((int)ev.code==63)
+                if((int)ev.code==58)
                 {
                     switch(ev.value)
                     {
@@ -544,11 +545,13 @@ int main(int argc, char *argv[])
                         {
                             task_bar_status[0]=alp_stat[0];
                             num_stat[0]='0';
+                            alpha_mode=1;
                         }
                         else if(num_stat[0]=='0')
                         {
                             task_bar_status[0]=0x33;
                             num_stat[0]='1';
+                            alpha_mode=0;
                         }
                     }
                     else if((int)ev.value==0 && kfile != 0)
@@ -563,7 +566,7 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-                else if((int)ev.code==58 && (int)ev.value==1)
+                else if((int)ev.code==58 && alpha_mode==1 && (int)ev.value==1)
                 {
                     if(alp_stat[0]=='1')
                     {
