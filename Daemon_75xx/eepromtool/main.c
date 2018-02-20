@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/signal.h>
+#include <time.h>
 
 void help_usage(void)
 {
@@ -31,11 +32,15 @@ int main (int argc, char *argv[]) {
     int seek_offset;
     char data[16];
 
+    time_t rawtime;
+    struct tm * timeinfo;
     signal( SIGALRM, handle_alarm );
 
     if(argc > 1)
     {
-        if((strcmp(argv[1],"-w")==0) && (argc == 5) ) {
+        if((strcmp(argv[1],"-w")==0) && (argc == 6) ) {
+
+//            if(strcmp(argv[5]),);
             if(strlen(argv[4]) <= 16)
             {
                 seek_offset=atoi(argv[3]);
@@ -75,7 +80,7 @@ int main (int argc, char *argv[]) {
                 printf("Data size exceeded 16 bytes\n");
             }
         }
-        else if(strcmp(argv[1],"-r")==0 && argc==4) {
+        else if(strcmp(argv[1],"-r")==0 && argc==5) {
             seek_offset=atoi(argv[3]);
             alarm(5);
             FILE *f;
@@ -108,7 +113,7 @@ int main (int argc, char *argv[]) {
                 printf("EEPROM Doesn't Exist\n");
             }
         }
-        else if((strcmp(argv[1],"-e")==0) && argc == 2) {
+        else if((strcmp(argv[1],"-e")==0) && argc == 3) {
             char null_data[4096];
             memset(null_data,'\0',sizeof(null_data));
             FILE * f = fopen ("/sys/bus/i2c/devices/0-0050/eeprom", "w");

@@ -321,7 +321,9 @@ int main(int argc, char *argv[]) {
                     if(camera==0)
                     {
                         gpio(camera_reg1,'1');
+                        usleep(500);
                         gpio(camera_reg2,'1');
+                        usleep(1000);
                         gpio(future_power,'1');
                         camera=1;
                     }
@@ -336,7 +338,9 @@ int main(int argc, char *argv[]) {
                     if(camera!=0)
                     {
                         gpio(camera_reg1,'0');
+                        usleep(500);
                         gpio(camera_reg2,'0');
+                        usleep(1000);
                         gpio(future_power,'0');
                         camera=0;
                     }

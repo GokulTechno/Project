@@ -11,43 +11,137 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <time.h>
 
 #define SHMSZ     27
 #define MOUSEFILE "/dev/input/event1"
+#define HIDFILE    "/dev/hidraw0"
 #ifndef EV_SYN
 #define EV_SYN 0
 #endif
 
-FILE *bfile, *sfile, *shutfile;
+FILE *bfile, *sfile, *shutfile, *stand_file;
 FILE *bl, *vmf;
 
 char task_bar_status[1];
 pthread_t tid;
 int a_stat=0,shutdata=0,backlight_status=0;
-int n_stat,s_stat,b_stat;
+int n_stat,s_stat,b_stat,sdata=0;
 
 volatile sig_atomic_t thread_stat = 0;
+static timer_t tmid0, tmid1;
 
-void standby(int value)
+//void standby(int value)
+//{
+//    switch(value)
+//    {
+//    case 0:
+//        system("/opt/daemon_files/standby.sh start");
+//        break;
+//    case 1:
+//        system("/opt/daemon_files/standby.sh stop");
+//        break;
+//    }
+//}
+
+static void file_write(char *filename,char *data)
 {
-    //    switch(value)
-    //    {
-    //    case 0:
-    //        system("/opt/daemon_files/standby.sh start");
-    //        break;
-    //    case 1:
-    //        system("/opt/daemon_files/standby.sh stop");
-    //        break;
-    //    }
+    int fp_write;
+    fp_write = open(filename,O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+    write(fp_write,data,sizeof(data));
+    close(fp_write);
 }
 
-void handle_alarm( int sig )
+void handle_alarm( int Sig, siginfo_t *Info, void *Ptr )
 {
-    //    printf("Alarm Called\n");
-    standby(0);
-    //    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
-    system("sh /usr/share/scripts/backlight 0");
-    backlight_status=0;
+    FILE *fstatus;
+    char status_buff[10];
+    if(Info->si_value.sival_ptr == &tmid0){
+        write(2, "tmid0\n", 6);
+        system("export DISPLAY=:0.0;/usr/bin/xinput disable 6");
+        //    printf("Alarm Called\n");
+        //    system("echo 500 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+        system("sh /usr/share/scripts/backlight 1");
+        //+5v Regulator
+        file_write("/sys/class/gpio/gpio43/value","0");
+        //USB Hub
+        file_write("/sys/class/gpio/gpio143/value","0");
+        backlight_status=0;
+    }
+    else if(Info->si_value.sival_ptr == &tmid1){
+        write(2, "tmid1\n", 6);
+        system("poweroff");
+    }
+
+}
+
+void* doSomeThing_hid(void *arg)
+{
+    pthread_t id = pthread_self();
+
+    if(pthread_equal(id,tid))
+    {
+        //        printf("\n First thread ccessing\n");
+        int fd;
+        struct input_event ie;
+        while(1){
+            if((fd = open(HIDFILE, O_RDONLY)) == -1) {
+                perror("opening device");
+                //exit(EXIT_FAILURE);
+                sleep(1);
+            }
+            else
+            {
+                while(read(fd, &ie, sizeof(struct input_event))) {
+                    printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
+
+                    int bdata;
+
+                    bfile = fopen("/usr/share/status/backlight_read_time","r");
+                    if(bfile)
+                    {
+                        fscanf(bfile,"%d",&bdata);
+                        fclose(bfile);
+                    }
+                    if(bdata<0)
+                    {
+                        file_write("/usr/share/status/backlight_read_time","0");
+                        bdata=0;
+                    }
+//                    printf("Backlight Data: %d\n", bdata);
+
+                    stand_file = fopen("/usr/share/status/standby_time","r");
+                    if(stand_file)
+                    {
+                        fscanf(stand_file,"%d",&sdata);
+                        fclose(stand_file);
+                    }
+                    if(sdata<0)
+                    {
+                        file_write("/usr/share/status/standby_time","0");
+                        sdata=0;
+                    }
+
+                    if(0>timer_settime(tmid0, 0, &(struct  itimerspec const){ .it_value={bdata,0} } , NULL) )
+                        system("exec /bin/sh /usr/share/scripts/backlight 4 &");
+                    printf("Backlight reenabled\n");
+                    //                    alarm(0);
+                    //                    alarm(bdata);
+
+                    // system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
+                    // system("sh /opt/daemon_files/standby.sh stop");
+                    //                    standby(1);
+                    usleep(5000);
+                    system("export DISPLAY=:0.0;/usr/bin/xinput enable 6");
+
+                }
+            }
+        }
+
+    }
+
+    return NULL;
 }
 
 /*********************************Pthread Job*********************************/
@@ -73,19 +167,42 @@ void* doSomeThing(void *arg)
                 if(ie.code==330)
                 {
                     int bdata;
+
                     bfile = fopen("/usr/share/status/backlight_read_time","r");
                     if(bfile)
                     {
                         fscanf(bfile,"%d",&bdata);
                         fclose(bfile);
                     }
-                    system("sh /usr/share/scripts/backlight 4");
-                    system("echo 1 > /sys/class/gpio/gpio143/value");
+
+                    if(bdata<0)
+                    {
+                        file_write("/usr/share/status/backlight_read_time","0");
+                        bdata=0;
+                    }
+
+                    stand_file = fopen("/usr/share/status/standby_time","r");
+                    if(stand_file)
+                    {
+                        fscanf(stand_file,"%d",&sdata);
+                        fclose(stand_file);
+                    }
+                    if(sdata<0)
+                    {
+                        file_write("/usr/share/status/standby_time","0");
+                        sdata=0;
+                    }
+
+                    if(0>timer_settime(tmid0, 0, &(struct  itimerspec const){ .it_value={bdata,0} } , NULL) )
+                        system("sh /usr/share/scripts/backlight 4");
+                    //                    alarm(0);
+                    //                    alarm(bdata);
+
                     //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
                     //system("sh /opt/daemon_files/standby.sh stop");
-                    standby(1);
-                    alarm(0);
-                    alarm(bdata);
+                    //                    standby(1);
+                    usleep(5000);
+                    system("export DISPLAY=:0.0;/usr/bin/xinput enable 6");
                 }
 
             }
@@ -195,7 +312,25 @@ int main(int argc, char *argv[])
 
     s = shm;
 
-    signal( SIGALRM, handle_alarm );
+    //    signal( SIGALRM, handle_alarm );
+    int r = EXIT_SUCCESS;
+
+    /*Timer Initialization*/
+
+    sigaction(SIGALRM, &(struct sigaction){ .sa_sigaction = handle_alarm, .sa_flags=SA_SIGINFO }, 0);
+    printf("%p %p\n", (void*)&tmid0, (void*)&tmid1);
+
+    struct sigevent sev = { .sigev_notify = SIGEV_SIGNAL, .sigev_signo = SIGALRM };
+
+    sev.sigev_value.sival_ptr = &tmid0;
+    if(0>timer_create(CLOCK_REALTIME,&sev,&tmid0))
+    { r=EXIT_FAILURE; goto out; }
+
+    sev.sigev_value.sival_ptr = &tmid1;
+    if(0>timer_create(CLOCK_REALTIME,&sev,&tmid1))
+    { r=EXIT_FAILURE; goto out; }
+
+    /*Timer Initialization*/
 
     const char *dev = "/dev/input/event0";
     struct input_event ev;
@@ -210,7 +345,8 @@ int main(int argc, char *argv[])
 
     //    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
     system("sh /usr/share/scripts/backlight 4");
-    system("echo 1 > /sys/class/gpio/gpio143/value");
+    system("rm /usr/share/status/CAPS_status");
+    system("rm /usr/share/status/CAPS_OFF_status");
 
     int bdata, kfile;
 
@@ -220,9 +356,29 @@ int main(int argc, char *argv[])
         fscanf(bfile,"%d",&bdata);
         fclose(bfile);
     }
+    if(bdata<0)
+    {
+        file_write("/usr/share/status/backlight_read_time","0");
+        bdata=0;
+    }
+    stand_file = fopen("/usr/share/status/standby_time","r");
+    if(stand_file)
+    {
+        fscanf(stand_file,"%d",&sdata);
+        fclose(stand_file);
+    }
+    if(sdata<0)
+    {
+        file_write("/usr/share/status/standby_time","0");
+        sdata=0;
+    }
 
-    alarm(0);
-    alarm(bdata);
+    //    alarm(0);
+    //    alarm(bdata);
+    if(0>timer_settime(tmid0, 0, &(struct  itimerspec const){ .it_value={bdata,0} } , NULL) )
+    { r=EXIT_FAILURE; goto out; }
+    if(0>timer_settime(tmid1, 0, &(struct  itimerspec const){ .it_value={sdata,0} } , NULL) )
+    { r=EXIT_FAILURE; goto out; }
     a_stat=1;
 
     //    int keymode_int;
@@ -238,6 +394,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Cannot open %s: %s.\n", dev, strerror(errno));
         return EXIT_FAILURE;
     }
+
     FILE *key_config;
     int kdata;
     key_config = fopen("/usr/share/status/KeyConfig","r");
@@ -254,6 +411,16 @@ int main(int argc, char *argv[])
 
     if(kdata==2)
     {
+        /*****************************Thread Creation*******************/
+        int err = pthread_create(&(tid), NULL, &doSomeThing_hid, NULL);
+        if (err != 0)
+            printf("\ncan't create thread :[%s]", strerror(err));
+        else
+            printf("\n Thread created successfully\n");
+
+        //        pthread_join(tid);
+
+        /*****************************Thread Creation*******************/
         while (1) {
             if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
                 perror("shmat");
@@ -284,7 +451,24 @@ int main(int argc, char *argv[])
                 fscanf(bfile,"%d",&bdata);
                 fclose(bfile);
             }
-
+            if(bdata<0)
+            {
+                file_write("/usr/share/status/backlight_read_time","0");
+                bdata=0;
+            }
+            printf("Backlight Timeout Data: %d\n", bdata);
+            stand_file = fopen("/usr/share/status/standby_time","r");
+            if(stand_file)
+            {
+                fscanf(stand_file,"%d",&sdata);
+                fclose(stand_file);
+            }
+            if(sdata<0)
+            {
+                file_write("/usr/share/status/standby_time","0");
+                sdata=0;
+            }
+            printf("Standby Timeout Data: %d\n", sdata);
             int sfile;
 
             bfile = fopen("/opt/daemon_files/standby_status", "r");
@@ -301,18 +485,38 @@ int main(int argc, char *argv[])
                 fclose(bfile);
             }
 
+            if( access( "/usr/share/status/CAPS_status", F_OK ) != -1 ) {
+                task_bar_status[0]=0x32;
+                system("rm /usr/share/status/CAPS_status; echo 2 > /usr/share/status/KEYPAD_mode;");
+            }
+            if( access( "/usr/share/status/CAPS_OFF_status", F_OK ) != -1 ) {
+                task_bar_status[0]=0x31;
+                system("rm /usr/share/status/CAPS_OFF_status; echo 1 > /usr/share/status/KEYPAD_mode;");
+            }
+
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
-                alarm(0);
-                alarm(bdata);
-                //system("sh /usr/share/scripts/backlight 4");
+                //                alarm(0);
+                //                alarm(bdata);
+                if(0>timer_settime(tmid0, 0, &(struct  itimerspec const){ .it_value={bdata,0} } , NULL) )
+                { r=EXIT_FAILURE; goto out; }
+                if(0>timer_settime(tmid1, 0, &(struct  itimerspec const){ .it_value={sdata,0} } , NULL) )
+                { r=EXIT_FAILURE; goto out; }
+                system("sh /opt/power_standby.sh 0");
+
 
                 if(backlight_status==0)
                 {
                     //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
                     system("sh /usr/share/scripts/backlight 4");
-                    system("echo 1 > /sys/class/gpio/gpio143/value");
                     backlight_status=1;
+                    //+5v Regulator
+                    file_write("/sys/class/gpio/gpio43/value","1");
+                    //USB Hub
+                    file_write("/sys/class/gpio/gpio143/value","1");
+                    usleep(5000);
+                    system("export DISPLAY=:0.0;/usr/bin/xinput enable 6");
+
                 }
                 if(sfile==1)
                 {
@@ -320,7 +524,7 @@ int main(int argc, char *argv[])
                     system("echo 0 > /opt/daemon_files/standby_status");
                 }
 
-                standby(1);
+                //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
 
                 if((int)ev.code==63)
@@ -376,6 +580,7 @@ int main(int argc, char *argv[])
                         CAPS=0;
                     }
                 }
+
                 if((int)ev.code==56)
                 {
                     printf("Kfile: %d\n", kfile);
@@ -421,6 +626,34 @@ int main(int argc, char *argv[])
                 {
                     system("echo 1 > /usr/share/status/KEYPAD_symbol");
                 }
+
+                printf("HomePress=%d\n",home_press);
+                if(((int)ev.code==2 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 1 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==3 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 2 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==4 && ev.value==0) && (home_press==1) )
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 3 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==5 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 4 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+                else if(((int)ev.code==6 && ev.value==0) && (home_press==1))
+                {
+                    system("export DISPLAY=:0.0;sh /opt/sdk/resources/launcher.sh 5 2> /dev/null &");
+                    system("/usr/share/scripts/Buzzer 2");
+                }
+
             }
             *s++ = task_bar_status[0];
             *s = '\0';
@@ -472,7 +705,24 @@ int main(int argc, char *argv[])
                 fscanf(bfile,"%d",&bdata);
                 fclose(bfile);
             }
-
+            if(bdata<0)
+            {
+                file_write("/usr/share/status/backlight_read_time","0");
+                bdata=0;
+            }
+            printf("Backlight Timeout Data: %d\n", bdata);
+            stand_file = fopen("/usr/share/status/standby_time","r");
+            if(stand_file)
+            {
+                fscanf(stand_file,"%d",&sdata);
+                fclose(stand_file);
+            }
+            if(sdata<0)
+            {
+                file_write("/usr/share/status/standby_time","0");
+                sdata=0;
+            }
+            printf("Standby Timeout Data: %d\n", sdata);
             if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2)
             {
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
@@ -483,10 +733,15 @@ int main(int argc, char *argv[])
                 {
                     //                    system("echo 90000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle");
                     system("sh /usr/share/scripts/backlight 4");
-                    system("echo 1 > /sys/class/gpio/gpio143/value");
                     backlight_status=1;
+                    //+5v Regulator
+                    file_write("/sys/class/gpio/gpio43/value","1");
+                    //USB Hub
+                    file_write("/sys/class/gpio/gpio143/value","1");
+                    usleep(5000);
+                    system("export DISPLAY=:0.0;/usr/bin/xinput enable 6");
                 }
-                standby(1);
+                //                standby(1);
                 printf("%s 0x%04x (%d)\n", evval[ev.value], (int)ev.code, (int)ev.code);
 
                 if((int)ev.code==58)
@@ -592,5 +847,10 @@ int main(int argc, char *argv[])
     }
     fflush(stdout);
     fprintf(stderr, "%s.\n", strerror(errno));
+
+out:
+    if(r)
+        perror(0);
+
     return EXIT_FAILURE;
 }

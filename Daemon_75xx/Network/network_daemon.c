@@ -35,7 +35,7 @@
 #endif
 
 char read_buffer[30],gsmcsq[8]="AT+CSQ\r",gsmops[10]="AT+COPS?\r",gsmpin[10]="AT+CPIN?\r",status_buff[10],bstatus_buff[10],bstat_buff[2], ping_buff[10], *name,read_buff[10];
-char gps_on[14]="AT+QIFGCNT=0\n",gps_loc[15]="AT+QCELLLOC=1\n",gps_data[20];
+char gps_on[14]="AT+QIFGCNT=0\n", gps_off[14]="AT+QIFGCNT=1\n", gps_act[10]="AT+QIACT\n",gps_loc[15]="AT+QCELLLOC=1\n",gps_data[20];
 int status_sim=0;
 void ip_check(char *);
 FILE *fping,*fpingg,*fpingng,*fgprspwr,*fgprsen,*fstatus,*fsim,*fm66,*fwifien,*fcsq, *fbluestat, *fblue, *fgpsd;
@@ -46,7 +46,7 @@ int wifi_up_down_status=0, ethernet_up_down_status=0, enable_gprs_status=0, enab
 
 int gprs_signal_check_thread_status=0,gprs_ping_thread_status=0,resol=0;
 pthread_t tid[2];
-int a=0,gps_on_status=0;
+int a=0,gps_on_status=0, gps_pwr_on_status=0, gps_pwr_off_status=0 ;
 
 #define BAUDRATE B115200
 /* change this definition for the correct port */
@@ -371,6 +371,30 @@ static void operator_check(void)
         if(gps_on_status==0)
         {
             STOP=FALSE;
+            write(fd,gps_off,sizeof(gps_off));
+            while (STOP==FALSE) {
+                if ( thread_stat == 0 ) {
+                    thread_stat=1;
+                    alarm(0);
+                    alarm(3);
+                }
+                if(t_stat==1){
+                    t_stat=0;
+                    STOP=TRUE;
+                }
+                usleep(50000);
+                res = read(fd,buf,255);
+                buf[res]=0;
+                //                printf("%s\n", buf);
+                if (buf[0]=='O')
+                {
+                    //                    printf("GPS Enabled\n");
+                    printf("GPS_OFF\n");
+                    gps_pwr_off_status=1;
+                    STOP=TRUE;
+                }
+            }
+            STOP=FALSE;
             write(fd,gps_on,sizeof(gps_on));
             while (STOP==FALSE) {
                 if ( thread_stat == 0 ) {
@@ -385,13 +409,18 @@ static void operator_check(void)
                 usleep(50000);
                 res = read(fd,buf,255);
                 buf[res]=0;
-                printf("%s\n", buf);
+                //                printf("%s\n", buf);
                 if (buf[0]=='O')
                 {
                     //                    printf("GPS Enabled\n");
-                    gps_on_status=1;
+                    printf("GPS_ON\n");
+                    gps_pwr_on_status=1;
                     STOP=TRUE;
                 }
+            }
+            if(gps_pwr_on_status==1 && gps_pwr_off_status==1)
+            {
+                gps_on_status=1;
             }
         }
         else if(gps_on_status==1)
@@ -411,14 +440,21 @@ static void operator_check(void)
                 usleep(50000);
                 res = read(fd,buf,255);
                 buf[res]=0;
-                printf("Data4: %s\n", buf);
-                if (buf[0]=='+')
+//                printf("Data4: %s\n", buf);
+                if (buf[0]=='+' && buf[1]=='Q')
                 {
                     //                    printf("GPS Location: %s\n",buf);
                     fgpsdata = fopen("/usr/share/status/GPS_DATA","w");
                     fprintf(fgpsdata,"%s",buf);
                     fclose(fgpsdata);
                     STOP=TRUE;
+                    printf("GPS_LOCATION_RECEIVED\n");
+                }
+                else if(buf[0]=='+' && buf[1]=='C')
+                {
+                    gps_on_status=0;
+                    STOP=TRUE;
+                    printf("GPS_LOCATION_ERROR\n");
                 }
             }
         }
@@ -734,7 +770,6 @@ static void ping(int a)
     }
     if(a==3)
     {
-
         //        if ((pingf("8.8.8.8") || pingf("208.67.222.222"))==0)
         if (pingf("8.8.8.8")==0)
         {

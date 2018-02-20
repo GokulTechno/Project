@@ -24,7 +24,7 @@ cp taskd ../build/
 #cp toold ../build/
 cd ..
 cd $PWD/Keypad
-arm-poky-linux-gnueabi-gcc -o keyd keypad_rotate.c -lpthread
+arm-poky-linux-gnueabi-gcc -o keyd keypad_rotate.c -lpthread -lrt
 cp keyd ../build/
 cd ..
 cd $PWD/rmgmtd

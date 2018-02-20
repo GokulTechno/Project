@@ -182,51 +182,44 @@ void my_message_callback(struct mosquitto *mosq, void *obj,
         if(strcmp(cmd,"verlog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
         }
         if(strcmp(cmd,"kerlog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
         }
         if(strcmp(cmd,"applog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
         }
         if(strcmp(cmd,"dblog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
         }
         if(strcmp(cmd,"permlog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
 
         }
         if(strcmp(cmd,"proclog")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             device_republish(cmd);
         }
         if(strcmp(cmd,"screenshot")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             system("sh /opt/daemon_files/screenshot.sh &");
         }
         if(strcmp(cmd,"execcommand")==0)
         {
             printf("Received Request\n");
-            //            system("sh /usr/share/scripts/Buzzer 2");
             system(execmd);
+            printf("Command Executed: %s\n",execmd);
         }
     }
     else
@@ -331,8 +324,8 @@ void device_republish(char *command)
 
     if(strcmp(command,"proclog")==0)
     {
-        printf("Preparing Data\n");
-        system("ps | tail -n 20 > /usr/share/status/debug/proc.log; echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log; date >> /usr/share/status/debug/kernel.log;echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log");
+        printf("Preparing Proc Log\n");
+        system("ps | tail -n 20 > /usr/share/status/debug/proc.log; echo --------------------------------------------------- >> /usr/share/status/debug/proc.log; date >> /usr/share/status/debug/proc.log;echo --------------------------------------------------- >> /usr/share/status/debug/proc.log");
         usleep(700000);
 
         mfile=fopen("/usr/share/status/debug/proc.log", "r");
@@ -348,8 +341,7 @@ void device_republish(char *command)
 
         strcat(topic,machine_id);
         strcat(topic,"/proc");
-        //        printf("Topic: %s\n",topic);
-        //        printf("Payload: %s\n",mpayload);
+
         ret = mosquitto_publish (mosq_sub, NULL, topic, strlen(rpayload), rpayload, 0, false);
         if (ret)
         {
@@ -361,7 +353,7 @@ void device_republish(char *command)
 
     if(strcmp(command,"kerlog")==0)
     {
-        //        printf("Preparing Data\n");
+        printf("Preparing Kernel Log\n");
         system("dmesg | tail -n 100 > /usr/share/status/debug/kernel.log; echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log; date >> /usr/share/status/debug/kernel.log;echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log");
         usleep(700000);
 
@@ -378,8 +370,7 @@ void device_republish(char *command)
 
         strcat(topic,machine_id);
         strcat(topic,"/dmesg");
-        //        printf("Topic: %s\n",topic);
-        //        printf("Payload: %s\n",mpayload);
+
         ret = mosquitto_publish (mosq_sub, NULL, topic, strlen(rpayload), rpayload, 0, false);
         if (ret)
         {
@@ -388,10 +379,11 @@ void device_republish(char *command)
         memset(topic,'\0',sizeof(topic));
         memset(rpayload,'\0',sizeof(rpayload));
     }
+
     if(strcmp(command,"verlog")==0)
     {
+        printf("Preparing Version Log\n");
         usleep(700000);
-
         mfile=fopen("/usr/share/status/OS-Version", "r");
         if(mfile==NULL)
         {
@@ -405,8 +397,7 @@ void device_republish(char *command)
 
         strcat(topic,machine_id);
         strcat(topic,"/ver");
-        //        printf("Topic: %s\n",topic);
-        //        printf("Payload: %s\n",mpayload);
+
         ret = mosquitto_publish (mosq_sub, NULL, topic, strlen(rpayload), rpayload, 0, false);
         if (ret)
         {
@@ -415,9 +406,11 @@ void device_republish(char *command)
         memset(topic,'\0',sizeof(topic));
         memset(rpayload,'\0',sizeof(rpayload));
     }
+
     if(strcmp(command,"applog")==0)
     {
-        system("cat /home/root/LOG | tail -n 100 > /usr/share/status/debug/app.log; echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log; date >> /usr/share/status/debug/kernel.log;echo --------------------------------------------------- >> /usr/share/status/debug/kernel.log");
+        printf("Preparing Application Log\n");
+        system("cat /home/root/LOG | tail -n 100 > /usr/share/status/debug/app.log; echo --------------------------------------------------- >> /usr/share/status/debug/app.log; date >> /usr/share/status/debug/app.log;echo --------------------------------------------------- >> /usr/share/status/debug/app.log");
         usleep(700000);
 
         mfile=fopen("/usr/share/status/debug/app.log", "r");
@@ -433,8 +426,7 @@ void device_republish(char *command)
 
         strcat(topic,machine_id);
         strcat(topic,"/applog");
-        //        printf("Topic: %s\n",topic);
-        //        printf("Payload: %s\n",mpayload);
+
         ret = mosquitto_publish (mosq_sub, NULL, topic, strlen(rpayload), rpayload, 0, false);
         if (ret)
         {
@@ -443,7 +435,6 @@ void device_republish(char *command)
         memset(topic,'\0',sizeof(topic));
         memset(rpayload,'\0',sizeof(rpayload));
     }
-
     mosquitto_disconnect (mosq_sub);
     mosquitto_destroy (mosq_sub);
     mosquitto_lib_cleanup();
@@ -721,7 +712,6 @@ int main (int argc, char *argv[])
                         fclose(mfile);
                     }
 
-
                     strcat(topic,machine_id);
                     strcat(topic,"/noper");
                     //                printf("Topic: %s\n",topic);
@@ -737,7 +727,6 @@ int main (int argc, char *argv[])
 
                     //<-------------------------------------Gprs Signal Topic--------------------------------->
 
-
                     system("STR=`cat /opt/daemon_files/rough_files/signal_level`;IFS=','; read -ra NAMES <<< \"$STR\"; echo ${NAMES[0]} 1> /usr/share/status/debug/gsignal.log");
                     sleep(5);
                     mfile = fopen("/usr/share/status/debug/gsignal.log","r");
@@ -750,7 +739,6 @@ int main (int argc, char *argv[])
                         }
                         fclose(mfile);
                     }
-
 
                     strcat(topic,machine_id);
                     strcat(topic,"/nsig");
@@ -778,7 +766,6 @@ int main (int argc, char *argv[])
                         fscanf(mfile,"%s",mpayload);
                         fclose(mfile);
                     }
-
 
                     strcat(topic,machine_id);
                     strcat(topic,"/noper");
